@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>Watty</string>
+    <key>CFBundleDisplayName</key>
+    <string>Watty</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.watty.app</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>UILaunchScreen</key>
+    <dict/>
+
+    <!-- Background Modes -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>fetch</string>
+        <string>processing</string>
+    </array>
+
+    <!-- Background Task Identifiers -->
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>com.watty.brief.generate</string>
+        <string>com.watty.data.ingest</string>
+        <string>com.watty.clustering.nightly</string>
+    </array>
+
+    <!-- Privacy Usage Descriptions -->
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>Watty reads your calendar to prepare your daily brief and meeting prep.</string>
+    <key>NSRemindersFullAccessUsageDescription</key>
+    <string>Watty reads your reminders to track commitments and include them in your daily brief.</string>
+    <key>NSContactsUsageDescription</key>
+    <string>Watty uses your contacts to provide relationship context and identify people in your messages.</string>
+</dict>
+</plist>

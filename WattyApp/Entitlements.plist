@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App Groups for sharing data with MCP extension -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.com.watty.shared</string>
+    </array>
+
+    <!-- Keychain sharing for encryption keys -->
+    <key>keychain-access-groups</key>
+    <array>
+        <string>$(AppIdentifierPrefix)com.watty.shared</string>
+    </array>
+
+    <!-- Siri / App Intents -->
+    <key>com.apple.developer.siri</key>
+    <true/>
+</dict>
+</plist>

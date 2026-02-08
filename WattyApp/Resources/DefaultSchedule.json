@@ -1,0 +1,37 @@
+{
+  "brief": {
+    "generation_time": "06:00",
+    "delivery_time": "07:00",
+    "max_words": 80,
+    "max_topics": 5
+  },
+  "ingestion": {
+    "calendar_interval_hours": 2,
+    "messages_interval_hours": 4,
+    "mail_interval_hours": 4,
+    "notes_interval_hours": 6,
+    "contacts_interval_hours": 24
+  },
+  "nudges": {
+    "max_per_day": 4,
+    "quiet_hours_start": "22:00",
+    "quiet_hours_end": "07:00",
+    "meeting_prep_minutes_before": 15,
+    "commitment_reminder_after_days": 2
+  },
+  "clustering": {
+    "run_time": "03:00",
+    "initial_k": 5,
+    "max_k": 50,
+    "min_cluster_size": 3
+  },
+  "voice": {
+    "style": "friend_who_never_forgets",
+    "case": "lowercase",
+    "max_message_words": 80,
+    "emoji": false,
+    "greetings": ["morning.", "hey."],
+    "sign_offs": false,
+    "personality_notes": "Direct. Short sentences. No filler. Knows user well. Never explains how it knows things."
+  }
+}
