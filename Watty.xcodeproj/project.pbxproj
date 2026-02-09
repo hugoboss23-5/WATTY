@@ -1,0 +1,570 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4A1E5B0A2D0A00010000FA01 /* WattyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E5B0A2D0A00010000FB01 /* WattyApp.swift */; };
+		4A1E5B0A2D0A00010000FA02 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E5B0A2D0A00010000FB02 /* OnboardingView.swift */; };
+		4A1E5B0A2D0A00010000FA03 /* AppleDecisionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E5B0A2D0A00010000FB03 /* AppleDecisionEngine.swift */; };
+		4A1E5B0A2D0A00010000FA04 /* AppleLevelUX.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E5B0A2D0A00010000FB04 /* AppleLevelUX.swift */; };
+		4A1E5B0A2D0A00010000FA05 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4B1E5B0A2D0A00010000FB05 /* Assets.xcassets */; };
+		4A1E5B0A2D0A00010000FA06 /* DefaultSchedule.json in Resources */ = {isa = PBXBuildFile; fileRef = 4B1E5B0A2D0A00010000FB06 /* DefaultSchedule.json */; };
+		4A1E5B0A2D0A00010000FA07 /* AppShortcutsProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E5B0A2D0A00010000FB09 /* AppShortcutsProvider.swift */; };
+		4A1E5B0A2D0A00010000FA08 /* BriefIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E5B0A2D0A00010000FB0A /* BriefIntent.swift */; };
+		4A1E5B0A2D0A00010000FA09 /* CommitmentsIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E5B0A2D0A00010000FB0B /* CommitmentsIntent.swift */; };
+		4A1E5B0A2D0A00010000FA0A /* RecallIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E5B0A2D0A00010000FB0C /* RecallIntent.swift */; };
+		4A1E5B0A2D0A00010000FA0B /* WattyCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5C1E5B0A2D0A00010000FE02 /* WattyCore */; };
+		4A1E5B0A2D0A00010000FA0C /* WattyCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5C1E5B0A2D0A00010000FE03 /* WattyCore */; };
+		4A1E5B0A2D0A00010000FA0D /* WattyIntents.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 4B1E5B0A2D0A00010000FB0E /* WattyIntents.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		5E1E5B0A2D0A00010000FF01 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4E1E5B0A2D0A00010000FD01 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4D1E5B0A2D0A00010000FC02;
+			remoteInfo = WattyIntents;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		4F1E5B0A2D0A00010000FD07 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				4A1E5B0A2D0A00010000FA0D /* WattyIntents.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		4B1E5B0A2D0A00010000FB01 /* WattyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattyApp.swift; sourceTree = "<group>"; };
+		4B1E5B0A2D0A00010000FB02 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		4B1E5B0A2D0A00010000FB03 /* AppleDecisionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleDecisionEngine.swift; sourceTree = "<group>"; };
+		4B1E5B0A2D0A00010000FB04 /* AppleLevelUX.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleLevelUX.swift; sourceTree = "<group>"; };
+		4B1E5B0A2D0A00010000FB05 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		4B1E5B0A2D0A00010000FB06 /* DefaultSchedule.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = DefaultSchedule.json; sourceTree = "<group>"; };
+		4B1E5B0A2D0A00010000FB07 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4B1E5B0A2D0A00010000FB08 /* Entitlements.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Entitlements.plist; sourceTree = "<group>"; };
+		4B1E5B0A2D0A00010000FB09 /* AppShortcutsProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShortcutsProvider.swift; sourceTree = "<group>"; };
+		4B1E5B0A2D0A00010000FB0A /* BriefIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefIntent.swift; sourceTree = "<group>"; };
+		4B1E5B0A2D0A00010000FB0B /* CommitmentsIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommitmentsIntent.swift; sourceTree = "<group>"; };
+		4B1E5B0A2D0A00010000FB0C /* RecallIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecallIntent.swift; sourceTree = "<group>"; };
+		4B1E5B0A2D0A00010000FB0D /* WattyApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WattyApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4B1E5B0A2D0A00010000FB0E /* WattyIntents.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WattyIntents.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4F1E5B0A2D0A00010000FD05 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4A1E5B0A2D0A00010000FA0B /* WattyCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4F1E5B0A2D0A00010000FD06 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4A1E5B0A2D0A00010000FA0C /* WattyCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4C1E5B0A2D0A00010000FC01 /* Watty */ = {
+			isa = PBXGroup;
+			children = (
+				4C1E5B0A2D0A00010000FC02 /* WattyApp */,
+				4C1E5B0A2D0A00010000FC06 /* WattyIntents */,
+				4C1E5B0A2D0A00010000FC08 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4C1E5B0A2D0A00010000FC02 /* WattyApp */ = {
+			isa = PBXGroup;
+			children = (
+				4B1E5B0A2D0A00010000FB01 /* WattyApp.swift */,
+				4C1E5B0A2D0A00010000FC03 /* Setup */,
+				4C1E5B0A2D0A00010000FC04 /* Resources */,
+				4B1E5B0A2D0A00010000FB05 /* Assets.xcassets */,
+				4B1E5B0A2D0A00010000FB07 /* Info.plist */,
+				4B1E5B0A2D0A00010000FB08 /* Entitlements.plist */,
+			);
+			path = WattyApp;
+			sourceTree = "<group>";
+		};
+		4C1E5B0A2D0A00010000FC03 /* Setup */ = {
+			isa = PBXGroup;
+			children = (
+				4B1E5B0A2D0A00010000FB02 /* OnboardingView.swift */,
+			);
+			path = Setup;
+			sourceTree = "<group>";
+		};
+		4C1E5B0A2D0A00010000FC04 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				4B1E5B0A2D0A00010000FB06 /* DefaultSchedule.json */,
+				4C1E5B0A2D0A00010000FC05 /* DesignSystem */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		4C1E5B0A2D0A00010000FC05 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				4B1E5B0A2D0A00010000FB03 /* AppleDecisionEngine.swift */,
+				4B1E5B0A2D0A00010000FB04 /* AppleLevelUX.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		4C1E5B0A2D0A00010000FC06 /* WattyIntents */ = {
+			isa = PBXGroup;
+			children = (
+				4C1E5B0A2D0A00010000FC07 /* Sources */,
+			);
+			path = WattyIntents;
+			sourceTree = "<group>";
+		};
+		4C1E5B0A2D0A00010000FC07 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				4B1E5B0A2D0A00010000FB09 /* AppShortcutsProvider.swift */,
+				4B1E5B0A2D0A00010000FB0A /* BriefIntent.swift */,
+				4B1E5B0A2D0A00010000FB0B /* CommitmentsIntent.swift */,
+				4B1E5B0A2D0A00010000FB0C /* RecallIntent.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		4C1E5B0A2D0A00010000FC08 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4B1E5B0A2D0A00010000FB0D /* WattyApp.app */,
+				4B1E5B0A2D0A00010000FB0E /* WattyIntents.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4D1E5B0A2D0A00010000FC01 /* WattyApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5B1E5B0A2D0A00010000FE02 /* Build configuration list for PBXNativeTarget "WattyApp" */;
+			buildPhases = (
+				4F1E5B0A2D0A00010000FD01 /* Sources */,
+				4F1E5B0A2D0A00010000FD03 /* Resources */,
+				4F1E5B0A2D0A00010000FD05 /* Frameworks */,
+				4F1E5B0A2D0A00010000FD07 /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5D1E5B0A2D0A00010000FF01 /* PBXTargetDependency */,
+			);
+			name = WattyApp;
+			packageProductDependencies = (
+				5C1E5B0A2D0A00010000FE02 /* WattyCore */,
+			);
+			productName = WattyApp;
+			productReference = 4B1E5B0A2D0A00010000FB0D /* WattyApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4D1E5B0A2D0A00010000FC02 /* WattyIntents */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5B1E5B0A2D0A00010000FE03 /* Build configuration list for PBXNativeTarget "WattyIntents" */;
+			buildPhases = (
+				4F1E5B0A2D0A00010000FD02 /* Sources */,
+				4F1E5B0A2D0A00010000FD06 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WattyIntents;
+			packageProductDependencies = (
+				5C1E5B0A2D0A00010000FE03 /* WattyCore */,
+			);
+			productName = WattyIntents;
+			productReference = 4B1E5B0A2D0A00010000FB0E /* WattyIntents.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4E1E5B0A2D0A00010000FD01 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1540;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					4D1E5B0A2D0A00010000FC01 = {
+						CreatedOnToolsVersion = 15.4;
+					};
+					4D1E5B0A2D0A00010000FC02 = {
+						CreatedOnToolsVersion = 15.4;
+					};
+				};
+			};
+			buildConfigurationList = 5B1E5B0A2D0A00010000FE01 /* Build configuration list for PBXProject "Watty" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4C1E5B0A2D0A00010000FC01 /* Watty */;
+			packageReferences = (
+				5C1E5B0A2D0A00010000FE01 /* XCLocalSwiftPackageReference "." */,
+			);
+			productRefGroup = 4C1E5B0A2D0A00010000FC08 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4D1E5B0A2D0A00010000FC01 /* WattyApp */,
+				4D1E5B0A2D0A00010000FC02 /* WattyIntents */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4F1E5B0A2D0A00010000FD03 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4A1E5B0A2D0A00010000FA05 /* Assets.xcassets in Resources */,
+				4A1E5B0A2D0A00010000FA06 /* DefaultSchedule.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4F1E5B0A2D0A00010000FD01 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4A1E5B0A2D0A00010000FA01 /* WattyApp.swift in Sources */,
+				4A1E5B0A2D0A00010000FA02 /* OnboardingView.swift in Sources */,
+				4A1E5B0A2D0A00010000FA03 /* AppleDecisionEngine.swift in Sources */,
+				4A1E5B0A2D0A00010000FA04 /* AppleLevelUX.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4F1E5B0A2D0A00010000FD02 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4A1E5B0A2D0A00010000FA07 /* AppShortcutsProvider.swift in Sources */,
+				4A1E5B0A2D0A00010000FA08 /* BriefIntent.swift in Sources */,
+				4A1E5B0A2D0A00010000FA09 /* CommitmentsIntent.swift in Sources */,
+				4A1E5B0A2D0A00010000FA0A /* RecallIntent.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5D1E5B0A2D0A00010000FF01 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4D1E5B0A2D0A00010000FC02 /* WattyIntents */;
+			targetProxy = 5E1E5B0A2D0A00010000FF01 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		5A1E5B0A2D0A00010000FE01 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		5A1E5B0A2D0A00010000FE02 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		5A1E5B0A2D0A00010000FE03 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = WattyApp/Entitlements.plist;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WattyApp/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.watty.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5A1E5B0A2D0A00010000FE04 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = WattyApp/Entitlements.plist;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WattyApp/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.watty.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		5A1E5B0A2D0A00010000FE05 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = WattyIntents;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.watty.app.intents;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5A1E5B0A2D0A00010000FE06 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = WattyIntents;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.watty.app.intents;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5B1E5B0A2D0A00010000FE01 /* Build configuration list for PBXProject "Watty" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5A1E5B0A2D0A00010000FE01 /* Debug */,
+				5A1E5B0A2D0A00010000FE02 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5B1E5B0A2D0A00010000FE02 /* Build configuration list for PBXNativeTarget "WattyApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5A1E5B0A2D0A00010000FE03 /* Debug */,
+				5A1E5B0A2D0A00010000FE04 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5B1E5B0A2D0A00010000FE03 /* Build configuration list for PBXNativeTarget "WattyIntents" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5A1E5B0A2D0A00010000FE05 /* Debug */,
+				5A1E5B0A2D0A00010000FE06 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		5C1E5B0A2D0A00010000FE01 /* XCLocalSwiftPackageReference "." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = .;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		5C1E5B0A2D0A00010000FE02 /* WattyCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WattyCore;
+		};
+		5C1E5B0A2D0A00010000FE03 /* WattyCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WattyCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 4E1E5B0A2D0A00010000FD01 /* Project object */;
+}

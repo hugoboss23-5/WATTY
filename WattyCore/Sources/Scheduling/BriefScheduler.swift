@@ -5,7 +5,9 @@ import UserNotifications
 /// Manages all background tasks: brief generation, data ingestion, and nightly clustering.
 /// Brief generates at 6am, delivers at 7am. Ingestion runs every 2-4 hours.
 /// Clustering runs at 3am.
-final class BriefScheduler {
+/// @unchecked Sendable: singleton with no mutable state; BGTaskScheduler closures
+/// require Sendable captures under Swift 6.
+final class BriefScheduler: @unchecked Sendable {
     static let shared = BriefScheduler()
 
     // Task identifiers — must match Info.plist BGTaskSchedulerPermittedIdentifiers
@@ -56,7 +58,7 @@ final class BriefScheduler {
     private func handleBriefGeneration(_ task: BGAppRefreshTask) {
         scheduleBriefGeneration()
 
-        let operation = Task {
+        let operation = Task { @MainActor in
             do {
                 let generator = BriefGenerator()
                 let brief = try await generator.generate(for: Date())
@@ -104,7 +106,7 @@ final class BriefScheduler {
     private func handleIngestion(_ task: BGAppRefreshTask) {
         scheduleIngestion()
 
-        let operation = Task {
+        let operation = Task { @MainActor in
             do {
                 let fourHoursAgo = Date(timeIntervalSinceNow: -4 * 60 * 60)
                 try await IngestionPipeline.shared.runIngestion(since: fourHoursAgo)
@@ -137,7 +139,7 @@ final class BriefScheduler {
     private func handleClustering(_ task: BGProcessingTask) {
         scheduleClustering()
 
-        let operation = Task {
+        let operation = Task { @MainActor in
             do {
                 try await ClusterEngine.shared.rebuildClusters()
                 task.setTaskCompleted(success: true)
@@ -153,7 +155,9 @@ final class BriefScheduler {
 }
 
 /// K-means clustering engine for auto-organizing memories into topics.
-final class ClusterEngine {
+/// @unchecked Sendable: singleton with immutable dependencies; mutable work
+/// happens only inside @MainActor rebuildClusters().
+final class ClusterEngine: @unchecked Sendable {
     static let shared = ClusterEngine()
 
     private let memoryStore = MemoryStore.shared

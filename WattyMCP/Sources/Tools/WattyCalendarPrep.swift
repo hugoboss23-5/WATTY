@@ -4,7 +4,8 @@ import WattyCore
 
 /// watty_calendar_prep — Get context for your next upcoming meeting.
 /// Cross-references attendees, topic, and past interactions.
-struct WattyCalendarPrep: MCPTool {
+/// @unchecked Sendable: EKEventStore is thread-safe for read operations.
+struct WattyCalendarPrep: @unchecked Sendable, MCPTool {
     private let memoryStore = MemoryStore.shared
     private let recallEngine = RecallEngine()
     private let eventStore = EKEventStore()

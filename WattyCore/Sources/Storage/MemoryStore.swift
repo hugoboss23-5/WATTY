@@ -2,7 +2,9 @@ import SwiftData
 import Foundation
 
 /// SwiftData persistent store for all Watty data — encrypted on-device.
-final class MemoryStore: Sendable {
+/// @unchecked Sendable: all mutable access is through @MainActor methods;
+/// ModelContainer itself is thread-safe.
+final class MemoryStore: @unchecked Sendable {
     static let shared = MemoryStore()
 
     let container: ModelContainer

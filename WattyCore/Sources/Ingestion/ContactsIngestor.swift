@@ -3,7 +3,8 @@ import Contacts
 
 /// Ingests contact metadata from Contacts framework → ContactProfile objects.
 /// Working ingestor — Contacts framework is available on iOS 9+.
-final class ContactsIngestor: IngestorProtocol {
+/// @unchecked Sendable: CNContactStore is thread-safe for read operations.
+final class ContactsIngestor: @unchecked Sendable, IngestorProtocol {
     let source: MemorySource = .contact
 
     private let contactStore: CNContactStore

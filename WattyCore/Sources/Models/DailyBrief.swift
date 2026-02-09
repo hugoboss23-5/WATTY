@@ -1,7 +1,7 @@
 import Foundation
 
 /// Structured output model for the daily brief — the core product.
-struct DailyBrief: Codable {
+struct DailyBrief: Codable, Sendable {
     let generatedAt: Date
     let date: Date
 

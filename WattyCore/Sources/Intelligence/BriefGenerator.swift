@@ -4,7 +4,8 @@ import EventKit
 /// The most important file in the project. This generates the Daily Brief — the product.
 /// Cross-references calendar, commitments, contacts, and memories to produce
 /// a single text message that tells you everything you need to know about your day.
-final class BriefGenerator {
+/// @unchecked Sendable: EKEventStore is thread-safe for reads; all other deps are Sendable.
+final class BriefGenerator: @unchecked Sendable {
     private let memoryStore: MemoryStore
     private let embedder: Embedder
     private let embeddingIndex: EmbeddingIndex

@@ -3,7 +3,8 @@ import NaturalLanguage
 
 /// On-device sentence embedding using Apple's NLEmbedding.
 /// 512 dimensions, runs on Neural Engine. No network required.
-final class Embedder {
+/// @unchecked Sendable: NLEmbedding is immutable after init and thread-safe for reads.
+final class Embedder: @unchecked Sendable {
     private let embedding: NLEmbedding?
 
     init() {

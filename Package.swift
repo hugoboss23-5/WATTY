@@ -4,8 +4,8 @@ import PackageDescription
 let package = Package(
     name: "Watty",
     platforms: [
-        .iOS(.v26),
-        .macOS(.v26)
+        .iOS(.v17),
+        .macOS(.v14)
     ],
     products: [
         .library(name: "WattyCore", targets: ["WattyCore"]),

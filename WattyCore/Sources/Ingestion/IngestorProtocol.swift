@@ -2,7 +2,7 @@ import Foundation
 
 /// Protocol that all data source ingestors implement.
 /// Each ingestor converts a specific Apple data source into Memory objects.
-protocol IngestorProtocol {
+protocol IngestorProtocol: Sendable {
     /// The source identifier for memories created by this ingestor.
     var source: MemorySource { get }
 
@@ -17,7 +17,8 @@ protocol IngestorProtocol {
 }
 
 /// Pipeline coordinator that runs all ingestors and indexes results.
-final class IngestionPipeline {
+/// @unchecked Sendable: ingestors array is set once in init and never mutated after.
+final class IngestionPipeline: @unchecked Sendable {
     static let shared = IngestionPipeline()
 
     private let memoryStore: MemoryStore

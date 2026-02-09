@@ -2,7 +2,8 @@ import Foundation
 
 /// JSON-RPC 2.0 transport over stdin/stdout per MCP specification.
 /// Handles reading requests from stdin and writing responses to stdout.
-final class StdioTransport {
+/// @unchecked Sendable: FileHandle is thread-safe; instance is used only from MCPServer.main().
+final class StdioTransport: @unchecked Sendable {
     private let inputHandle: FileHandle
     private let outputHandle: FileHandle
 
@@ -15,7 +16,7 @@ final class StdioTransport {
     }
 
     /// Start the transport loop — reads JSON-RPC messages from stdin.
-    func start(handler: @escaping (JSONRPCRequest) async -> JSONRPCResponse?) async {
+    func start(handler: @escaping @Sendable (JSONRPCRequest) async -> JSONRPCResponse?) async {
         while let line = readLine() {
             guard !line.isEmpty else { continue }
 
@@ -69,14 +70,14 @@ final class StdioTransport {
 
 // MARK: - JSON-RPC Types
 
-struct JSONRPCRequest: Codable {
+struct JSONRPCRequest: Codable, Sendable {
     let jsonrpc: String
     let id: JSONRPCId?
     let method: String
     let params: JSONRPCParams?
 }
 
-enum JSONRPCId: Codable, Equatable {
+enum JSONRPCId: Codable, Equatable, Sendable {
     case string(String)
     case int(Int)
 
@@ -103,7 +104,7 @@ enum JSONRPCId: Codable, Equatable {
     }
 }
 
-struct JSONRPCParams: Codable {
+struct JSONRPCParams: Codable, Sendable {
     let values: [String: AnyCodable]
 
     init(_ dict: [String: Any]) {
@@ -140,7 +141,7 @@ struct JSONRPCParams: Codable {
     }
 }
 
-struct JSONRPCResponse: Codable {
+struct JSONRPCResponse: Codable, Sendable {
     let jsonrpc: String
     let id: JSONRPCId?
     let result: AnyCodable?
@@ -160,13 +161,14 @@ struct JSONRPCResponse: Codable {
     }
 }
 
-struct JSONRPCError: Codable {
+struct JSONRPCError: Codable, Sendable {
     let code: Int
     let message: String
 }
 
 /// Type-erased Codable wrapper for JSON values.
-struct AnyCodable: Codable {
+/// @unchecked Sendable: value is always a JSON primitive (Bool/Int/Double/String/Array/Dict).
+struct AnyCodable: @unchecked Sendable, Codable {
     let value: Any
 
     init(_ value: Any) {

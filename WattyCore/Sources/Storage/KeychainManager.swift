@@ -3,7 +3,8 @@ import Security
 import CryptoKit
 
 /// Manages encryption keys via Keychain with Secure Enclave backing.
-final class KeychainManager {
+/// Sendable: only static members, no instance state.
+final class KeychainManager: Sendable {
 
     private static let keyTag = "com.watty.encryption.key"
 

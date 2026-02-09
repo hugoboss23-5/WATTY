@@ -3,7 +3,8 @@ import Accelerate
 
 /// High-level semantic search combining Embedder + EmbeddingIndex.
 /// Provides the search interface used by RecallEngine and BriefGenerator.
-final class SimilaritySearch {
+/// Sendable: all stored properties are Sendable (Embedder, EmbeddingIndex).
+final class SimilaritySearch: Sendable {
     private let embedder: Embedder
     private let index: EmbeddingIndex
 

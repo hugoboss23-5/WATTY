@@ -3,7 +3,8 @@ import EventKit
 
 /// Ingests reminders from EventKit → Memory objects.
 /// Working ingestor — EventKit reminders are available on iOS 17+.
-final class RemindersIngestor: IngestorProtocol {
+/// @unchecked Sendable: EKEventStore is thread-safe for read operations.
+final class RemindersIngestor: @unchecked Sendable, IngestorProtocol {
     let source: MemorySource = .reminder
 
     private let eventStore: EKEventStore

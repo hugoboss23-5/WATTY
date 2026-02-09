@@ -2,7 +2,8 @@ import Foundation
 
 /// Semantic search engine — the core of "Hey Siri, what was that idea about..."
 /// Queries the embedding index and enriches results with full memory context.
-final class RecallEngine {
+/// Sendable: all stored properties are Sendable.
+final class RecallEngine: Sendable {
     private let memoryStore: MemoryStore
     private let embedder: Embedder
     private let embeddingIndex: EmbeddingIndex
@@ -78,7 +79,8 @@ final class RecallEngine {
 }
 
 /// A search result with full memory context and relevance score.
-struct RecallResult {
+/// @unchecked Sendable: Memory is a @Model class accessed only on @MainActor.
+struct RecallResult: @unchecked Sendable {
     let memory: Memory
     let relevanceScore: Float
     let clusterName: String?

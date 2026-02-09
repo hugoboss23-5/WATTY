@@ -141,7 +141,7 @@ struct MCPServer {
 }
 
 /// Protocol for MCP tool implementations.
-protocol MCPTool {
+protocol MCPTool: Sendable {
     /// The tool's JSON definition for tools/list.
     var definition: [String: Any] { get }
     /// Execute the tool with given parameters.

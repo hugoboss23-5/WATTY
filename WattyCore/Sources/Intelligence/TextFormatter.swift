@@ -5,7 +5,8 @@ import Foundation
 ///
 /// Uses Apple Foundation Models (`LanguageModelSession`) when available.
 /// Falls back to template-based formatting for pre-Xcode 26 development.
-final class TextFormatter {
+/// Sendable: no mutable stored state; all methods are pure functions.
+final class TextFormatter: Sendable {
 
     /// Watty's system prompt — the soul of the product.
     static let systemPrompt = """

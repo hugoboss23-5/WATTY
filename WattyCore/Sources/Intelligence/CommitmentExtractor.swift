@@ -3,7 +3,9 @@ import NaturalLanguage
 
 /// Extracts commitments (promises) from text content using NLP.
 /// Identifies phrases like "I'll send you...", "Let me know...", "I promised..."
-final class CommitmentExtractor {
+/// @unchecked Sendable: commitmentPatterns is a let tuple array (tuples aren't
+/// automatically Sendable in Swift 6 even when contents are).
+final class CommitmentExtractor: @unchecked Sendable {
     private let memoryStore: MemoryStore
 
     /// Patterns that indicate a commitment was made.

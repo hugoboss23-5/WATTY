@@ -6,7 +6,8 @@ import Accelerate
 ///
 /// For v1, this is a flat index (brute-force search). At scale (>10k memories),
 /// this should be replaced with HNSW approximate nearest neighbors.
-final class EmbeddingIndex {
+/// @unchecked Sendable: thread safety enforced via concurrent DispatchQueue with barrier writes.
+final class EmbeddingIndex: @unchecked Sendable {
     /// An indexed entry: memory ID + its embedding vector.
     struct Entry: Codable {
         let memoryID: UUID

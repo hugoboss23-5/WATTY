@@ -3,7 +3,8 @@ import EventKit
 
 /// Ingests calendar events from EventKit → Memory objects.
 /// This is a working ingestor — EventKit is available on iOS 17+.
-final class CalendarIngestor: IngestorProtocol {
+/// @unchecked Sendable: EKEventStore is thread-safe for read operations.
+final class CalendarIngestor: @unchecked Sendable, IngestorProtocol {
     let source: MemorySource = .calendar
 
     private let eventStore: EKEventStore

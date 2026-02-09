@@ -4,7 +4,8 @@ import UserNotifications
 /// Intra-day commitment and calendar reminders.
 /// Sends targeted nudges about overdue commitments and upcoming meetings.
 /// Respects quiet hours (10pm–7am) and max 4 nudges per day.
-final class NudgeScheduler {
+/// @unchecked Sendable: singleton with immutable config; mutable access via @MainActor.
+final class NudgeScheduler: @unchecked Sendable {
     static let shared = NudgeScheduler()
 
     private let memoryStore = MemoryStore.shared
