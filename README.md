@@ -45,6 +45,14 @@ Add to your Claude Desktop config:
 
 Restart Claude Desktop. Done. Watty is alive.
 
+## Import your history
+
+```bash
+watty-import-chatgpt ~/Downloads/chatgpt-export.zip
+watty-import-claude ~/Downloads/claude-export.json
+watty-import-json ~/conversations.json
+```
+
 ## Platform support
 
 Watty speaks MCP over **stdio** — the standard local transport.

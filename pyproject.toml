@@ -36,6 +36,9 @@ Issues = "https://github.com/hugoboss23-5/WATTY/issues"
 
 [project.scripts]
 watty = "watty.server:run"
+watty-import-chatgpt = "watty.importers.chatgpt:main"
+watty-import-claude = "watty.importers.claude:main"
+watty-import-json = "watty.importers.generic:main"
 
 [project.optional-dependencies]
 onnx = ["optimum[onnxruntime]>=1.16.0", "onnxruntime>=1.16.0"]
