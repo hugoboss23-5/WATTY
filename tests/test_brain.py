@@ -203,3 +203,44 @@ def test_multiple_providers():
     brain.store_memory("Manually stored", provider="manual")
     s = brain.stats()
     assert set(s["providers"]) == {"claude", "grok", "manual"}
+
+
+def test_embedding_loader_no_backend():
+    """Both backends unavailable → clear error message."""
+    import watty.embeddings_loader as loader
+    old_embed, old_cosine, old_backend = loader._embed_fn, loader._cosine_fn, loader.EMBEDDING_BACKEND
+    loader._embed_fn = None
+    loader._cosine_fn = None
+    loader.EMBEDDING_BACKEND = "auto"
+
+    # Temporarily hide both backends and cached embedding modules
+    saved_mods = {}
+    for mod in ["optimum", "optimum.onnxruntime", "sentence_transformers",
+                "watty.embeddings", "watty.embeddings_onnx"]:
+        saved_mods[mod] = sys.modules.pop(mod, None)
+    # Block imports
+    import builtins
+    _real_import = builtins.__import__
+    blocked = {"optimum", "optimum.onnxruntime", "sentence_transformers"}
+    def _mock_import(name, *args, **kwargs):
+        if name in blocked:
+            raise ImportError(f"No module named '{name}'")
+        return _real_import(name, *args, **kwargs)
+    builtins.__import__ = _mock_import
+
+    try:
+        raised = False
+        try:
+            loader.embed_text("test")
+        except ImportError as e:
+            raised = True
+            assert "No embedding backend available" in str(e)
+        assert raised, "Expected ImportError when no backend available"
+    finally:
+        builtins.__import__ = _real_import
+        for mod, val in saved_mods.items():
+            if val is not None:
+                sys.modules[mod] = val
+        loader._embed_fn = old_embed
+        loader._cosine_fn = old_cosine
+        loader.EMBEDDING_BACKEND = old_backend

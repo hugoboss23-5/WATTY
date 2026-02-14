@@ -22,11 +22,10 @@ Watty is an [MCP](https://modelcontextprotocol.io) server that gives **any AI** 
 
 ```bash
 git clone https://github.com/hugoboss23-5/WATTY.git
-cd watty
-pip install -e .
+cd WATTY
+pip install -e ".[onnx]"    # Recommended: ~100MB, no GPU needed
+# pip install -e ".[torch]" # Full: ~2GB, includes PyTorch
 ```
-
-> ⚠️ **Heads up:** `sentence-transformers` pulls in PyTorch (~2GB download). First install takes a few minutes. After that, Watty starts in seconds.
 
 Add to your Claude Desktop config:
 
@@ -165,6 +164,7 @@ All optional. Watty works out of the box with zero configuration.
 |----------|---------|-------------|
 | `WATTY_HOME` | `~/.watty/` | Where the brain lives |
 | `WATTY_EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Sentence transformer model |
+| `WATTY_EMBEDDING_BACKEND` | `auto` | `auto`, `onnx`, or `torch` |
 | `WATTY_TOP_K` | `10` | Max memories per search |
 | `WATTY_RELEVANCE_THRESHOLD` | `0.35` | Min similarity score (0-1) |
 | `WATTY_CHUNK_SIZE` | `1500` | Characters per memory chunk |
@@ -175,8 +175,8 @@ All optional. Watty works out of the box with zero configuration.
 **Does it work with ChatGPT / Gemini / Grok?**  
 Not yet — Watty v1 uses stdio transport, which works with Claude Desktop, Cursor, and other local MCP clients. ChatGPT, Gemini, and Grok require HTTP/SSE transport for remote MCP servers. HTTP support is the top priority for v1.1. Follow the repo for updates.
 
-**Why is the first install so large?**  
-`sentence-transformers` depends on PyTorch (~2GB). This is a one-time download. After that, Watty starts instantly. We're exploring `onnxruntime` as a lighter alternative for a future release — same model, ~100MB total, no GPU dependency.
+**Why is the first install so large?**
+If you install with `.[torch]`, `sentence-transformers` pulls in PyTorch (~2GB). Use `.[onnx]` instead — same model, ~100MB total, no GPU dependency. Watty auto-detects whichever backend you have.
 
 **How much disk space does it use after install?**  
 The embedding model is ~80MB. After that, your memories are just SQLite rows — thousands of documents fit in megabytes.
@@ -203,7 +203,7 @@ pip install -e ".[dev]"
 python -m pytest tests/ -v
 ```
 
-17 tests, runs in ~2 seconds, no PyTorch download needed (uses mock embeddings).
+18 tests, runs in ~2 seconds, no PyTorch download needed (uses mock embeddings).
 
 ## Built by
 

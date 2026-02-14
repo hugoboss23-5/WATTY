@@ -17,6 +17,7 @@ DB_PATH = WATTY_HOME / "brain.db"
 # ── Embedding Model ──────────────────────────────────────
 EMBEDDING_MODEL = os.environ.get("WATTY_EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 EMBEDDING_DIMENSION = 384
+EMBEDDING_BACKEND = os.environ.get("WATTY_EMBEDDING_BACKEND", "auto")  # auto | onnx | torch
 
 # ── Search Tuning ────────────────────────────────────────
 TOP_K = int(os.environ.get("WATTY_TOP_K", "10"))

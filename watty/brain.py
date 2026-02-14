@@ -25,7 +25,7 @@ from watty.config import (
     CLUSTER_MIN_MEMORIES, CLUSTER_SIMILARITY_THRESHOLD,
     SURFACE_TOP_K, SURFACE_NOVELTY_WEIGHT,
 )
-from watty.embeddings import embed_text, cosine_similarity
+from watty.embeddings_loader import embed_text, cosine_similarity
 
 
 class Brain:

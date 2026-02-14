@@ -11,7 +11,7 @@ Watty runs as a local MCP server. When an AI platform queries Watty before respo
 ## Architecture
 
 - **Storage:** SQLite database at `~/.watty/brain.db`
-- **Embeddings:** sentence-transformers `all-MiniLM-L6-v2` (384 dimensions)
+- **Embeddings:** `all-MiniLM-L6-v2` (384 dimensions) via onnxruntime or sentence-transformers
 - **Search:** Cosine similarity with recency weighting
 - **Chunking:** 1500 chars with 200 char overlap, smart boundary detection
 - **Deduplication:** SHA-256 content hashing prevents duplicates
@@ -35,8 +35,9 @@ Watty runs as a local MCP server. When an AI platform queries Watty before respo
 
 ```bash
 git clone https://github.com/hugoboss23-5/WATTY.git
-cd watty
-pip install -e .
+cd WATTY
+pip install -e ".[onnx]"    # Recommended: ~100MB
+# pip install -e ".[torch]" # Full: ~2GB, includes PyTorch
 ```
 
 Add to Claude Desktop config (`~/.config/claude/claude_desktop_config.json` on Mac/Linux, `%APPDATA%\Claude\claude_desktop_config.json` on Windows):

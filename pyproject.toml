@@ -26,9 +26,7 @@ classifiers = [
 
 dependencies = [
     "mcp>=1.0.0",
-    "sentence-transformers>=2.2.0",
     "numpy>=1.24.0",
-    "torch>=2.0.0",
 ]
 
 [project.urls]
@@ -40,6 +38,9 @@ Issues = "https://github.com/hugoboss23-5/WATTY/issues"
 watty = "watty.server:run"
 
 [project.optional-dependencies]
+onnx = ["optimum[onnxruntime]>=1.16.0", "onnxruntime>=1.16.0"]
+torch = ["sentence-transformers>=2.2.0", "torch>=2.0.0"]
+full = ["sentence-transformers>=2.2.0", "torch>=2.0.0", "optimum[onnxruntime]>=1.16.0", "onnxruntime>=1.16.0"]
 dev = ["pytest>=7.0"]
 
 [tool.pytest.ini_options]
