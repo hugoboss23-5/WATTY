@@ -27,6 +27,7 @@ from watty.config import (
 )
 from watty.embeddings_loader import embed_text, cosine_similarity
 from watty.crypto import connect as crypto_connect
+from watty.embedding_queue import EmbeddingQueue
 
 
 class Brain:
@@ -43,6 +44,7 @@ class Brain:
         self._vectors: Optional[np.ndarray] = None
         self._vector_ids: list[int] = []
         self._index_dirty = True
+        self._eq = EmbeddingQueue(self.db_path)
 
     def _init_db(self):
         conn = self._connect()
@@ -251,12 +253,13 @@ class Brain:
                     if dup:
                         continue
 
-                    embedding = embed_text(chunk)
-                    conn.execute(
+                    # Store text immediately, enqueue embedding for background processing
+                    cursor2 = conn.execute(
                         "INSERT INTO chunks (conversation_id, role, content, chunk_index, embedding, created_at, provider, content_hash, source_type, source_path) "
                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                        (conv_id, "document", chunk, i, embedding.tobytes(), now, "file_scan", content_hash, "file", str(filepath)),
+                        (conv_id, "document", chunk, i, None, now, "file_scan", content_hash, "file", str(filepath)),
                     )
+                    self._eq.enqueue(cursor2.lastrowid, chunk)
                     file_chunks += 1
 
                 conn.execute(
@@ -272,6 +275,8 @@ class Brain:
 
         conn.commit()
         conn.close()
+        # Flush pending embeddings so they're searchable immediately
+        self._eq.flush()
         self._index_dirty = True
 
         return {
@@ -608,6 +613,7 @@ class Brain:
         convs = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
         providers = [r[0] for r in conn.execute("SELECT DISTINCT provider FROM chunks").fetchall()]
         scanned = conn.execute("SELECT COUNT(*) FROM scan_log").fetchone()[0]
+        pending = conn.execute("SELECT COUNT(*) FROM chunks WHERE embedding IS NULL").fetchone()[0]
         conn.close()
 
         return {
@@ -616,4 +622,5 @@ class Brain:
             "total_files_scanned": scanned,
             "providers": providers,
             "db_path": self.db_path,
+            "pending_embeddings": pending + self._eq.pending,
         }

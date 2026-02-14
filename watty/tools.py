@@ -214,13 +214,15 @@ def call_tool(brain: Brain, name: str, args: dict) -> dict:
 
     elif name == "watty_stats":
         stats = brain.stats()
+        pending = stats.get("pending_embeddings", 0)
+        pending_text = f"\n  Pending embeddings: {pending}" if pending else ""
         return {"text": (
             f"Watty Brain Status:\n"
             f"  Total memories: {stats['total_memories']}\n"
             f"  Conversations: {stats['total_conversations']}\n"
             f"  Files scanned: {stats['total_files_scanned']}\n"
             f"  Providers: {', '.join(stats['providers']) if stats['providers'] else 'None yet'}\n"
-            f"  Database: {stats['db_path']}"
+            f"  Database: {stats['db_path']}{pending_text}"
         )}
 
     return {"text": f"Unknown tool: {name}", "isError": True}

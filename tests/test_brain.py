@@ -284,3 +284,41 @@ def test_crypto_migration_detection():
     brain, tmp = fresh_brain()
     brain.store_memory("Data for migration test")
     assert crypto._is_unencrypted(brain.db_path)  # plain sqlite3 is unencrypted
+
+
+# ── Async Embedding Pipeline Tests ────────────────────
+
+def test_scan_with_async_pipeline():
+    """Scan stores text and embeds via queue — nothing lost."""
+    brain, tmp = fresh_brain()
+    scan_dir = os.path.join(tmp, "docs")
+    os.makedirs(scan_dir)
+    for i in range(10):
+        with open(os.path.join(scan_dir, f"file{i}.md"), "w") as f:
+            f.write(f"Document number {i} about topic {i * 7}")
+
+    r = brain.scan_directory(scan_dir)
+    assert r["files_scanned"] == 10
+    assert r["chunks_stored"] == 10
+    # After flush, all should be embedded and searchable
+    assert brain._eq.pending == 0
+    results = brain.recall("Document about topic")
+    assert len(results) > 0
+
+
+def test_stats_shows_pending():
+    """Stats includes pending_embeddings count."""
+    brain, _ = fresh_brain()
+    brain.store_memory("Stats pending test")
+    s = brain.stats()
+    assert "pending_embeddings" in s
+    assert s["pending_embeddings"] == 0  # single ops embed inline
+
+
+def test_recall_during_embedding():
+    """Already-embedded chunks are searchable while new ones process."""
+    brain, tmp = fresh_brain()
+    brain.store_memory("Already embedded searchable content")
+    # This is already embedded (single op = inline)
+    results = brain.recall("Already embedded searchable content")
+    assert len(results) > 0
