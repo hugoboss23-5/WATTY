@@ -34,7 +34,7 @@ Watty runs as a local MCP server. When an AI platform queries Watty before respo
 ## Installation
 
 ```bash
-git clone https://github.com/watty-ai/watty.git
+git clone https://github.com/hugoboss23-5/WATTY.git
 cd watty
 pip install -e .
 ```
@@ -63,10 +63,10 @@ Add to Claude Desktop config (`~/.config/claude/claude_desktop_config.json` on M
 
 ## Links
 
-- [README](https://github.com/watty-ai/watty/blob/main/README.md)
-- [Changelog](https://github.com/watty-ai/watty/blob/main/CHANGELOG.md)
-- [Security](https://github.com/watty-ai/watty/blob/main/SECURITY.md)
-- [Source: server.py](https://github.com/watty-ai/watty/blob/main/watty/server.py)
-- [Source: brain.py](https://github.com/watty-ai/watty/blob/main/watty/brain.py)
-- [Issues](https://github.com/watty-ai/watty/issues)
-- [License: MIT](https://github.com/watty-ai/watty/blob/main/LICENSE)
+- [README](https://github.com/hugoboss23-5/WATTY/blob/main/README.md)
+- [Changelog](https://github.com/hugoboss23-5/WATTY/blob/main/CHANGELOG.md)
+- [Security](https://github.com/hugoboss23-5/WATTY/blob/main/SECURITY.md)
+- [Source: server.py](https://github.com/hugoboss23-5/WATTY/blob/main/watty/server.py)
+- [Source: brain.py](https://github.com/hugoboss23-5/WATTY/blob/main/watty/brain.py)
+- [Issues](https://github.com/hugoboss23-5/WATTY/issues)
+- [License: MIT](https://github.com/hugoboss23-5/WATTY/blob/main/LICENSE)

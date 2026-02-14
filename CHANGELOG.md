@@ -29,4 +29,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **v1.2:** `onnxruntime` backend option (~100MB vs ~2GB PyTorch)
 - **v1.3:** Approximate nearest neighbor search for 50k+ memories
 
-[1.0.0]: https://github.com/watty-ai/watty/releases/tag/v1.0.0
+[1.0.0]: https://github.com/hugoboss23-5/WATTY/releases/tag/v1.0.0

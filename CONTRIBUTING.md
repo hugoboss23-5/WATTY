@@ -5,14 +5,14 @@ Thanks for wanting to help give AI a brain. Here's how.
 ## Quick start
 
 ```bash
-git clone https://github.com/watty-ai/watty.git
+git clone https://github.com/hugoboss23-5/WATTY.git
 cd watty
 pip install -e .
 ```
 
 ## How to contribute
 
-1. **Find something to work on** — check [Issues](https://github.com/watty-ai/watty/issues) for `good first issue` labels
+1. **Find something to work on** — check [Issues](https://github.com/hugoboss23-5/WATTY/issues) for `good first issue` labels
 2. **Fork the repo** and create a branch from `main`
 3. **Make your changes** — keep it focused, one thing per PR
 4. **Test it** — make sure `watty` still starts and the 8 tools work

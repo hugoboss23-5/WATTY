@@ -3,11 +3,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/watty-ai/watty/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+  <a href="https://github.com/hugoboss23-5/WATTY/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+"></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-compatible-green.svg" alt="MCP Compatible"></a>
-  <a href="https://github.com/watty-ai/watty/actions/workflows/tests.yml"><img src="https://github.com/watty-ai/watty/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
-  <a href="https://github.com/watty-ai/watty/stargazers"><img src="https://img.shields.io/github/stars/watty-ai/watty?style=social" alt="GitHub Stars"></a>
+  <a href="https://github.com/hugoboss23-5/WATTY/actions/workflows/tests.yml"><img src="https://github.com/hugoboss23-5/WATTY/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
+  <a href="https://github.com/hugoboss23-5/WATTY/stargazers"><img src="https://img.shields.io/github/stars/hugoboss23-5/WATTY?style=social" alt="GitHub Stars"></a>
 </p>
 
 ---
@@ -21,7 +21,7 @@ Watty is an [MCP](https://modelcontextprotocol.io) server that gives **any AI** 
 ## Install in 60 seconds
 
 ```bash
-git clone https://github.com/watty-ai/watty.git
+git clone https://github.com/hugoboss23-5/WATTY.git
 cd watty
 pip install -e .
 ```
@@ -57,7 +57,7 @@ Watty speaks MCP over **stdio** — the standard local transport.
 | **Windsurf** | ✅ Works now | Native stdio MCP support |
 | **Claude Code** | ✅ Works now | Native stdio MCP support |
 | **VS Code + Copilot** | ✅ Works now | Via MCP extension |
-| **ChatGPT** | 🔜 v1.1 | Requires HTTP transport — [tracking issue](https://github.com/watty-ai/watty/issues) |
+| **ChatGPT** | 🔜 v1.1 | Requires HTTP transport — [tracking issue](https://github.com/hugoboss23-5/WATTY/issues) |
 | **Gemini** | 🔜 v1.1 | Requires HTTP transport |
 | **Grok** | 🔜 v1.1 | Requires HTTP transport |
 
@@ -207,9 +207,9 @@ python -m pytest tests/ -v
 
 ## Built by
 
-[Hugo Bulliard](https://github.com/watty-ai) — 19, economics student, building infrastructure for human-AI collaboration.
+[Hugo Bulliard](https://github.com/hugoboss23-5) — 19, economics student, building infrastructure for human-AI collaboration.
 
-Watty is Layer 1 of the [Trinity Stack](https://github.com/watty-ai) — persistence, governance, and payments for the AI era.
+Watty is Layer 1 of the [Trinity Stack](https://github.com/hugoboss23-5) — persistence, governance, and payments for the AI era.
 
 ## License
 

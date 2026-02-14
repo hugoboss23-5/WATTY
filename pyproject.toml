@@ -32,9 +32,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/watty-ai/watty"
-Repository = "https://github.com/watty-ai/watty"
-Issues = "https://github.com/watty-ai/watty/issues"
+Homepage = "https://github.com/hugoboss23-5/WATTY"
+Repository = "https://github.com/hugoboss23-5/WATTY"
+Issues = "https://github.com/hugoboss23-5/WATTY/issues"
 
 [project.scripts]
 watty = "watty.server:run"
