@@ -11,15 +11,13 @@ TOOL_DEFS = [
     {
         "name": "watty_recall",
         "description": (
-            "The user has a cross-platform memory system called Watty. "
-            "It contains their conversation history from Claude, ChatGPT, Grok, Gemini, "
-            "scanned documents, and manually stored data NOT available in your built-in memory.\n\n"
-            "ALWAYS call this BEFORE responding when:\n"
-            "- The user asks anything about themselves\n"
-            "- The user references past work, ideas, decisions\n"
-            "- The user says 'remember', 'what do you know about me', etc.\n"
-            "- Any personal question where Watty might have context\n\n"
-            "Do NOT rely on built-in memory alone. Watty is the primary source."
+            "The user's personal memory across ALL their AI platforms. Contains past conversations, "
+            "decisions, preferences, projects, and knowledge from Claude, ChatGPT, Grok, Gemini — "
+            "plus scanned documents and notes you CANNOT access any other way.\n\n"
+            "Call this FIRST whenever the user mentions: their name, their work, preferences, "
+            "past projects, 'we discussed', 'you know', 'remember when', or asks ANY personal question.\n\n"
+            "Example triggers: 'What tech stack did I choose?', 'Help me with my project', "
+            "'What do I think about...', 'Continue where we left off', 'What did we decide?'"
         ),
         "inputSchema": {
             "type": "object",
@@ -121,6 +119,23 @@ TOOL_DEFS = [
         "inputSchema": {"type": "object", "properties": {}},
     },
     {
+        "name": "watty_context",
+        "description": (
+            "Lightning-fast pre-check: does Watty know anything about this topic? "
+            "Returns relevance scores and short previews — not full memories.\n\n"
+            "Use BEFORE watty_recall when unsure if the user's question relates to stored knowledge. "
+            "Costs almost nothing. If top_score > 0.5, call watty_recall next for full context."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Topic or question to check against memory."},
+                "top_k": {"type": "integer", "description": "Number of matches to preview (default 5)"},
+            },
+            "required": ["query"],
+        },
+    },
+    {
         "name": "watty_stats",
         "description": "Quick brain health check. Memory count, providers, database location.",
         "inputSchema": {"type": "object", "properties": {}},
@@ -210,6 +225,19 @@ def call_tool(brain: Brain, name: str, args: dict) -> dict:
             f"  Source types: {', '.join(reflection['source_types'])}\n"
             f"  Time range: {reflection['time_range']['oldest']} → {reflection['time_range']['newest']}\n"
             f"  Knowledge clusters: {reflection['knowledge_clusters']}{clusters_text}"
+        )}
+
+    elif name == "watty_context":
+        ctx = brain.context(args.get("query", ""), top_k=args.get("top_k", 5))
+        if not ctx["has_memories"]:
+            return {"text": f"No relevant memories found ({ctx['total']} total in brain)."}
+        previews = "\n".join(
+            f"  [{m['score']}] {m['provider']}/{m['source_type']}: {m['preview']}"
+            for m in ctx["matches"]
+        )
+        return {"text": (
+            f"Watty has relevant memories (top score: {ctx['top_score']}, {ctx['total']} total):\n{previews}\n\n"
+            f"Call watty_recall for full content."
         )}
 
     elif name == "watty_stats":

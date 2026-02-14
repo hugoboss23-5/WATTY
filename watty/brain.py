@@ -605,6 +605,52 @@ class Brain:
             ],
         }
 
+    # ── Context (Lightweight Pre-check) ─────────────────
+
+    def context(self, query: str, top_k: int = 5) -> dict:
+        """
+        Fast pre-check: does Watty have anything relevant?
+        Returns scores + short previews, not full memories.
+        Designed for <50ms on 10k memories.
+        """
+        if self._index_dirty:
+            self._build_index()
+
+        if self._vectors is None or len(self._vectors) == 0:
+            return {"has_memories": False, "total": 0, "top_score": 0, "matches": []}
+
+        query_vec = embed_text(query)
+        similarities = np.dot(self._vectors, query_vec)
+
+        top_indices = np.argsort(similarities)[::-1][:top_k]
+
+        conn = self._connect()
+        matches = []
+        for idx in top_indices:
+            sim = float(similarities[idx])
+            if sim < RELEVANCE_THRESHOLD:
+                break
+            chunk_id = self._vector_ids[idx]
+            row = conn.execute(
+                "SELECT provider, source_type, substr(content, 1, 80) as preview FROM chunks WHERE id = ?",
+                (chunk_id,),
+            ).fetchone()
+            if row:
+                matches.append({
+                    "score": round(sim, 4),
+                    "provider": row["provider"],
+                    "source_type": row["source_type"],
+                    "preview": row["preview"],
+                })
+        conn.close()
+
+        return {
+            "has_memories": len(matches) > 0,
+            "total": len(self._vector_ids),
+            "top_score": round(float(similarities[top_indices[0]]), 4) if len(top_indices) > 0 else 0,
+            "matches": matches,
+        }
+
     # ── Stats ────────────────────────────────────────────
 
     def stats(self) -> dict:

@@ -322,3 +322,47 @@ def test_recall_during_embedding():
     # This is already embedded (single op = inline)
     results = brain.recall("Already embedded searchable content")
     assert len(results) > 0
+
+
+# ── Context (Lightweight Pre-check) Tests ────────────
+
+def test_context_empty_brain():
+    brain, _ = fresh_brain()
+    ctx = brain.context("anything")
+    assert ctx["has_memories"] is False
+    assert ctx["total"] == 0
+    assert ctx["matches"] == []
+
+
+def test_context_returns_previews():
+    brain, _ = fresh_brain()
+    brain.store_memory("I love building distributed systems in Rust")
+    brain.store_memory("My favorite food is sushi especially salmon nigiri")
+    ctx = brain.context("distributed systems")
+    assert ctx["has_memories"] is True
+    assert ctx["total"] == 2
+    assert ctx["top_score"] > 0
+    assert len(ctx["matches"]) > 0
+    # Previews are short (max 80 chars)
+    for m in ctx["matches"]:
+        assert len(m["preview"]) <= 80
+        assert "provider" in m
+        assert "score" in m
+
+
+def test_context_tool_registered():
+    """watty_context appears in the tool registry."""
+    from watty.tools import TOOL_NAMES
+    assert "watty_context" in TOOL_NAMES
+    assert "watty_recall" in TOOL_NAMES
+
+
+def test_context_tool_handler():
+    """watty_context handler returns formatted output."""
+    from watty.tools import call_tool
+    brain, _ = fresh_brain()
+    brain.store_memory("Python machine learning data science sklearn")
+    result = call_tool(brain, "watty_context", {"query": "Python machine learning data science sklearn"})
+    assert "text" in result
+    # Should mention either "relevant memories" or "No relevant"
+    assert "relevant" in result["text"].lower() or "no relevant" in result["text"].lower()

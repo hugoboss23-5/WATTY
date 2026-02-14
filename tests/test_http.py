@@ -40,7 +40,7 @@ from watty.brain import Brain  # noqa: E402
 def test_tools_schema_complete():
     assert TOOL_NAMES == {
         "watty_recall", "watty_remember", "watty_scan", "watty_cluster",
-        "watty_forget", "watty_surface", "watty_reflect", "watty_stats",
+        "watty_forget", "watty_surface", "watty_reflect", "watty_context", "watty_stats",
     }
 
 
