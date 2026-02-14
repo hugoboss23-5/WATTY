@@ -1,7 +1,7 @@
 """
 Watty HTTP/SSE Transport
-Same 8 tools, same Brain, but over HTTP instead of stdio.
-Enables ChatGPT, Gemini, Grok, and any HTTP-capable MCP client.
+Same tools, same Brain, but over HTTP instead of stdio.
+All tool definitions live in tools.py.
 
 Usage:
     watty-http                    # starts on localhost:8766
@@ -13,10 +13,10 @@ import json
 import os
 import sys
 import uuid
-from datetime import datetime, timezone
 
 from watty.brain import Brain
 from watty.config import SERVER_NAME, SERVER_VERSION
+from watty.tools import TOOL_DEFS, call_tool
 
 PORT = int(os.environ.get("WATTY_HTTP_PORT", "8766"))
 HOST = os.environ.get("WATTY_HTTP_HOST", "localhost")
@@ -28,68 +28,7 @@ def log(msg):
     print(msg, file=sys.stderr, flush=True)
 
 
-# ── Tool dispatch (mirrors server.py logic) ──────────────
-
-TOOLS_SCHEMA = [
-    {"name": "watty_recall", "description": "Semantic search across all memory", "inputSchema": {
-        "type": "object", "properties": {
-            "query": {"type": "string"}, "provider_filter": {"type": "string"}, "top_k": {"type": "integer"}
-        }, "required": ["query"]}},
-    {"name": "watty_remember", "description": "Store something important in memory", "inputSchema": {
-        "type": "object", "properties": {
-            "content": {"type": "string"}, "provider": {"type": "string"}
-        }, "required": ["content"]}},
-    {"name": "watty_scan", "description": "Scan a directory and ingest all supported files", "inputSchema": {
-        "type": "object", "properties": {
-            "path": {"type": "string"}, "recursive": {"type": "boolean"}
-        }, "required": ["path"]}},
-    {"name": "watty_cluster", "description": "Generate knowledge graph from memory clusters", "inputSchema": {
-        "type": "object", "properties": {}}},
-    {"name": "watty_forget", "description": "Delete memories by query, IDs, provider, or date", "inputSchema": {
-        "type": "object", "properties": {
-            "query": {"type": "string"}, "chunk_ids": {"type": "array", "items": {"type": "integer"}},
-            "provider": {"type": "string"}, "before": {"type": "string"}
-        }}},
-    {"name": "watty_surface", "description": "Surface surprising connections from memory", "inputSchema": {
-        "type": "object", "properties": {"context": {"type": "string"}}}},
-    {"name": "watty_reflect", "description": "Deep synthesis — map the entire mind", "inputSchema": {
-        "type": "object", "properties": {}}},
-    {"name": "watty_stats", "description": "Brain health check", "inputSchema": {
-        "type": "object", "properties": {}}},
-]
-
-
-def call_tool(name: str, args: dict) -> dict:
-    if name == "watty_recall":
-        results = brain.recall(args.get("query", ""), top_k=args.get("top_k"), provider_filter=args.get("provider_filter"))
-        return {"content": [{"type": "text", "text": json.dumps(results, default=str)}]}
-    elif name == "watty_remember":
-        chunks = brain.store_memory(args.get("content", ""), provider=args.get("provider", "manual"))
-        return {"content": [{"type": "text", "text": f"Stored as {chunks} chunk(s)."}]}
-    elif name == "watty_scan":
-        result = brain.scan_directory(args.get("path", ""), recursive=args.get("recursive", True))
-        return {"content": [{"type": "text", "text": json.dumps(result, default=str)}]}
-    elif name == "watty_cluster":
-        clusters = brain.cluster()
-        return {"content": [{"type": "text", "text": json.dumps(clusters, default=str)}]}
-    elif name == "watty_forget":
-        result = brain.forget(query=args.get("query"), chunk_ids=args.get("chunk_ids"),
-                              provider=args.get("provider"), before=args.get("before"))
-        return {"content": [{"type": "text", "text": json.dumps(result, default=str)}]}
-    elif name == "watty_surface":
-        results = brain.surface(context=args.get("context"))
-        return {"content": [{"type": "text", "text": json.dumps(results, default=str)}]}
-    elif name == "watty_reflect":
-        return {"content": [{"type": "text", "text": json.dumps(brain.reflect(), default=str)}]}
-    elif name == "watty_stats":
-        return {"content": [{"type": "text", "text": json.dumps(brain.stats(), default=str)}]}
-    return {"content": [{"type": "text", "text": f"Unknown tool: {name}"}], "isError": True}
-
-
-# ── HTTP/SSE Server ──────────────────────────────────────
-
 async def handle_sse(request):
-    from aiohttp import web
     from aiohttp.web import StreamResponse
 
     session_id = str(uuid.uuid4())
@@ -100,12 +39,8 @@ async def handle_sse(request):
         "Access-Control-Allow-Origin": "*",
     })
     await resp.prepare(request)
+    await resp.write(f"event: endpoint\ndata: /messages?session_id={session_id}\n\n".encode())
 
-    # Send endpoint event per MCP SSE spec
-    messages_url = f"/messages?session_id={session_id}"
-    await resp.write(f"event: endpoint\ndata: {messages_url}\n\n".encode())
-
-    # Keep connection alive
     request.app["sessions"][session_id] = resp
     try:
         while not resp.task.done():
@@ -139,27 +74,25 @@ async def handle_messages(request):
             "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
         }
     elif method == "tools/list":
-        result = {"tools": TOOLS_SCHEMA}
+        result = {"tools": TOOL_DEFS}
     elif method == "tools/call":
-        tool_name = params.get("name", "")
-        tool_args = params.get("arguments", {})
         try:
-            result = call_tool(tool_name, tool_args)
+            raw = call_tool(brain, params.get("name", ""), params.get("arguments", {}))
+            result = {"content": [{"type": "text", "text": raw["text"]}]}
+            if raw.get("isError"):
+                result["isError"] = True
         except Exception as e:
             result = {"content": [{"type": "text", "text": f"Error: {e}"}], "isError": True}
     elif method == "notifications/initialized":
-        # Client ack — no response needed
         return web.json_response({"ok": True})
     else:
         result = {"error": {"code": -32601, "message": f"Unknown method: {method}"}}
 
     response = {"jsonrpc": "2.0", "id": msg_id, "result": result}
-    event_data = json.dumps(response)
     try:
-        await sse_resp.write(f"event: message\ndata: {event_data}\n\n".encode())
+        await sse_resp.write(f"event: message\ndata: {json.dumps(response)}\n\n".encode())
     except (ConnectionResetError, ConnectionAbortedError):
         pass
-
     return web.json_response({"ok": True})
 
 
@@ -194,7 +127,7 @@ async def main():
     site = web.TCPSite(runner, HOST, PORT)
     await site.start()
     log(f"[Watty] SSE endpoint: http://{HOST}:{PORT}/sse")
-    log(f"[Watty] 8 tools ready over HTTP. Connect any MCP client.")
+    log(f"[Watty] {len(TOOL_DEFS)} tools ready over HTTP. Connect any MCP client.")
     await asyncio.Event().wait()
 
 

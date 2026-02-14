@@ -30,38 +30,41 @@ if "sentence_transformers" not in sys.modules:
     sys.modules["sentence_transformers"] = _mock_st
 
 
-from watty.server_http import create_app, call_tool, brain, TOOLS_SCHEMA  # noqa: E402
+from watty.server_http import create_app, brain  # noqa: E402
+from watty.tools import TOOL_DEFS, TOOL_NAMES, call_tool  # noqa: E402
 from watty.brain import Brain  # noqa: E402
 
 
 # ── Unit tests for tool dispatch ─────────────────────────
 
 def test_tools_schema_complete():
-    names = {t["name"] for t in TOOLS_SCHEMA}
-    assert names == {
+    assert TOOL_NAMES == {
         "watty_recall", "watty_remember", "watty_scan", "watty_cluster",
         "watty_forget", "watty_surface", "watty_reflect", "watty_stats",
     }
 
 
 def test_call_tool_stats():
-    result = call_tool("watty_stats", {})
-    assert "content" in result
-    data = json.loads(result["content"][0]["text"])
-    assert "total_memories" in data
+    result = call_tool(brain, "watty_stats", {})
+    assert "text" in result
+    assert "Total memories" in result["text"]
 
 
 def test_call_tool_remember_and_recall():
-    call_tool("watty_remember", {"content": "HTTP transport test memory XYZ123"})
-    result = call_tool("watty_recall", {"query": "HTTP transport test memory XYZ123"})
-    assert "content" in result
-    data = json.loads(result["content"][0]["text"])
-    assert isinstance(data, list)
+    call_tool(brain, "watty_remember", {"content": "HTTP transport test memory XYZ123"})
+    result = call_tool(brain, "watty_recall", {"query": "HTTP transport test memory XYZ123"})
+    assert "text" in result
 
 
 def test_call_tool_unknown():
-    result = call_tool("nonexistent_tool", {})
+    result = call_tool(brain, "nonexistent_tool", {})
     assert result.get("isError") is True
+
+
+def test_stdio_http_same_tools():
+    """stdio and HTTP expose identical tool names."""
+    http_names = {t["name"] for t in TOOL_DEFS}
+    assert http_names == TOOL_NAMES
 
 
 # ── Integration test with aiohttp test client ───────────
