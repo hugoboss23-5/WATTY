@@ -244,3 +244,43 @@ def test_embedding_loader_no_backend():
         loader._embed_fn = old_embed
         loader._cosine_fn = old_cosine
         loader.EMBEDDING_BACKEND = old_backend
+
+
+# ── Crypto / Encryption Tests ──────────────────────────
+
+def test_crypto_fallback_no_sqlcipher():
+    """Without sqlcipher3, crypto.connect falls back to plain sqlite3."""
+    import watty.crypto as crypto
+    brain, _ = fresh_brain()
+    # Brain already works — uses fallback. Verify store + recall roundtrip.
+    brain.store_memory("Encrypted fallback test")
+    results = brain.recall("Encrypted fallback test")
+    assert len(results) > 0
+
+
+def test_crypto_key_generation():
+    """Key file gets created on first use."""
+    import watty.crypto as crypto
+    from pathlib import Path
+    key = crypto.get_key()
+    assert len(key) == 64  # 32 bytes hex = 64 chars
+    # Calling again returns same key
+    assert crypto.get_key() == key
+
+
+def test_crypto_key_from_env():
+    """WATTY_DB_KEY env var overrides keyfile."""
+    import watty.crypto as crypto
+    os.environ["WATTY_DB_KEY"] = "test_key_abc123"
+    try:
+        assert crypto.get_key() == "test_key_abc123"
+    finally:
+        del os.environ["WATTY_DB_KEY"]
+
+
+def test_crypto_migration_detection():
+    """Unencrypted db detection works."""
+    import watty.crypto as crypto
+    brain, tmp = fresh_brain()
+    brain.store_memory("Data for migration test")
+    assert crypto._is_unencrypted(brain.db_path)  # plain sqlite3 is unencrypted

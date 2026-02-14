@@ -26,6 +26,7 @@ from watty.config import (
     SURFACE_TOP_K, SURFACE_NOVELTY_WEIGHT,
 )
 from watty.embeddings_loader import embed_text, cosine_similarity
+from watty.crypto import connect as crypto_connect
 
 
 class Brain:
@@ -95,10 +96,8 @@ class Brain:
         conn.commit()
         conn.close()
 
-    def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        return conn
+    def _connect(self):
+        return crypto_connect(self.db_path)
 
     # ── Chunking ─────────────────────────────────────────
 
