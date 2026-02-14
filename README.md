@@ -21,11 +21,19 @@ Watty is an [MCP](https://modelcontextprotocol.io) server that gives **any AI** 
 ## Install in 60 seconds
 
 ```bash
+pip install watty-ai[onnx]    # Recommended: ~100MB, no GPU needed
+# pip install watty-ai[torch] # Full: ~2GB, includes PyTorch
+```
+
+<details>
+<summary>Development install</summary>
+
+```bash
 git clone https://github.com/hugoboss23-5/WATTY.git
 cd WATTY
-pip install -e ".[onnx]"    # Recommended: ~100MB, no GPU needed
-# pip install -e ".[torch]" # Full: ~2GB, includes PyTorch
+pip install -e ".[onnx,dev]"
 ```
+</details>
 
 Add to your Claude Desktop config:
 

@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
+requires = ["setuptools>=68.0,<77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "watty"
-version = "1.0.0"
+name = "watty-ai"
+version = "1.1.0"
 description = "One memory. Every AI. It just knows you."
 readme = "README.md"
 requires-python = ">=3.10"

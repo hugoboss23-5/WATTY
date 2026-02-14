@@ -8,7 +8,7 @@ from pathlib import Path
 
 # ── Identity ─────────────────────────────────────────────
 SERVER_NAME = "watty"
-SERVER_VERSION = "1.0.0"
+SERVER_VERSION = "1.1.0"
 
 # ── Paths ────────────────────────────────────────────────
 WATTY_HOME = Path(os.environ.get("WATTY_HOME", Path.home() / ".watty"))
