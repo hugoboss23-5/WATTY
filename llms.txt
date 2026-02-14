@@ -1,0 +1,72 @@
+# Watty
+
+> One memory. Every AI. It just knows you.
+
+Watty is an MCP (Model Context Protocol) server that gives any AI persistent memory. It stores conversations, documents, and code locally in SQLite with semantic vector search. Works with Claude Desktop, Cursor, Windsurf, Claude Code, and any stdio MCP client.
+
+## Core Concept
+
+Watty runs as a local MCP server. When an AI platform queries Watty before responding, it gains natural awareness of the user's history — past conversations, scanned documents, stored preferences. The user types normally. The AI just knows things.
+
+## Architecture
+
+- **Storage:** SQLite database at `~/.watty/brain.db`
+- **Embeddings:** sentence-transformers `all-MiniLM-L6-v2` (384 dimensions)
+- **Search:** Cosine similarity with recency weighting
+- **Chunking:** 1500 chars with 200 char overlap, smart boundary detection
+- **Deduplication:** SHA-256 content hashing prevents duplicates
+
+## 8 MCP Tools
+
+- `watty_recall` — Semantic search across all memory (by meaning, not keywords)
+- `watty_remember` — Store important information with full context
+- `watty_scan` — Point at a directory, Watty ingests all supported files automatically
+- `watty_cluster` — Self-organizing knowledge graph generation
+- `watty_forget` — Delete by search query, chunk IDs, provider, or date
+- `watty_surface` — Proactive intelligence: finds surprising connections in memory
+- `watty_reflect` — Deep synthesis: maps total memories, providers, time range, clusters
+- `watty_stats` — Quick health check: memory count, providers, database location
+
+## Supported File Types
+
+.txt .md .json .csv .log .py .js .ts .swift .rs .html .css .yaml .yml .toml .sh .bat .ps1
+
+## Installation
+
+```bash
+git clone https://github.com/watty-ai/watty.git
+cd watty
+pip install -e .
+```
+
+Add to Claude Desktop config (`~/.config/claude/claude_desktop_config.json` on Mac/Linux, `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
+
+```json
+{
+  "mcpServers": {
+    "watty": {
+      "command": "watty",
+      "args": []
+    }
+  }
+}
+```
+
+## Configuration (all optional)
+
+- WATTY_HOME: ~/.watty/ (brain location)
+- WATTY_EMBEDDING_MODEL: all-MiniLM-L6-v2
+- WATTY_TOP_K: 10 (results per search)
+- WATTY_RELEVANCE_THRESHOLD: 0.35
+- WATTY_CHUNK_SIZE: 1500
+- WATTY_CHUNK_OVERLAP: 200
+
+## Links
+
+- [README](https://github.com/watty-ai/watty/blob/main/README.md)
+- [Changelog](https://github.com/watty-ai/watty/blob/main/CHANGELOG.md)
+- [Security](https://github.com/watty-ai/watty/blob/main/SECURITY.md)
+- [Source: server.py](https://github.com/watty-ai/watty/blob/main/watty/server.py)
+- [Source: brain.py](https://github.com/watty-ai/watty/blob/main/watty/brain.py)
+- [Issues](https://github.com/watty-ai/watty/issues)
+- [License: MIT](https://github.com/watty-ai/watty/blob/main/LICENSE)
