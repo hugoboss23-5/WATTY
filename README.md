@@ -63,20 +63,20 @@ watty-import-json ~/conversations.json
 
 ## Platform support
 
-Watty speaks MCP over **stdio** — the standard local transport.
+Watty speaks MCP over **stdio** and **HTTP/SSE**.
 
 | Platform | Status | Notes |
 |----------|--------|-------|
-| **Claude Desktop** | ✅ Works now | Native stdio MCP support |
-| **Cursor** | ✅ Works now | Native stdio MCP support |
-| **Windsurf** | ✅ Works now | Native stdio MCP support |
-| **Claude Code** | ✅ Works now | Native stdio MCP support |
+| **Claude Desktop** | ✅ Works now | stdio transport |
+| **Cursor** | ✅ Works now | stdio transport |
+| **Windsurf** | ✅ Works now | stdio transport |
+| **Claude Code** | ✅ Works now | stdio transport |
 | **VS Code + Copilot** | ✅ Works now | Via MCP extension |
-| **ChatGPT** | 🔜 v1.1 | Requires HTTP transport — [tracking issue](https://github.com/hugoboss23-5/WATTY/issues) |
-| **Gemini** | 🔜 v1.1 | Requires HTTP transport |
-| **Grok** | 🔜 v1.1 | Requires HTTP transport |
+| **ChatGPT** | ✅ Works now | HTTP transport (`watty-http`) |
+| **Gemini** | ✅ Works now | HTTP transport (`watty-http`) |
+| **Grok** | ✅ Works now | HTTP transport (`watty-http`) |
 
-HTTP transport is the #1 priority for v1.1 — one wrapper and Watty works everywhere.
+stdio for local clients. `watty-http` for everything else.
 
 ## What happens next
 
@@ -188,8 +188,8 @@ All optional. Watty works out of the box with zero configuration.
 
 ## FAQ
 
-**Does it work with ChatGPT / Gemini / Grok?**  
-Not yet — Watty v1 uses stdio transport, which works with Claude Desktop, Cursor, and other local MCP clients. ChatGPT, Gemini, and Grok require HTTP/SSE transport for remote MCP servers. HTTP support is the top priority for v1.1. Follow the repo for updates.
+**Does it work with ChatGPT / Gemini / Grok?**
+Yes. Run `watty-http` to start the HTTP/SSE server on `localhost:8766`, then point your MCP client at it. Same 8 tools, same brain.
 
 **Why is the first install so large?**
 If you install with `.[torch]`, `sentence-transformers` pulls in PyTorch (~2GB). Use `.[onnx]` instead — same model, ~100MB total, no GPU dependency. Watty auto-detects whichever backend you have.
@@ -219,7 +219,7 @@ pip install -e ".[dev]"
 python -m pytest tests/ -v
 ```
 
-18 tests, runs in ~2 seconds, no PyTorch download needed (uses mock embeddings).
+31 tests, runs in ~3 seconds, no PyTorch download needed (uses mock embeddings).
 
 ## Built by
 
