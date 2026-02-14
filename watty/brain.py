@@ -441,7 +441,28 @@ class Brain:
     def forget(self, query: str = None, chunk_ids: list[int] = None, provider: str = None, before: str = None) -> dict:
         """
         Your soul, your rules. Delete memories by search, ID, provider, or date.
+        Auto-backs up before deleting 100+ memories.
         """
+        # Safety net: auto-backup before large deletes
+        conn = self._connect()
+        count_to_delete = 0
+        if provider:
+            count_to_delete = conn.execute("SELECT COUNT(*) FROM chunks WHERE provider = ?", (provider,)).fetchone()[0]
+        elif before:
+            count_to_delete = conn.execute("SELECT COUNT(*) FROM chunks WHERE created_at < ?", (before,)).fetchone()[0]
+        elif chunk_ids:
+            count_to_delete = len(chunk_ids)
+        conn.close()
+
+        if count_to_delete >= 100:
+            try:
+                from watty.backup import backup
+                path = backup()
+                import sys
+                print(f"[Watty] Auto-backup before large delete: {path}", file=sys.stderr, flush=True)
+            except Exception:
+                pass
+
         conn = self._connect()
         deleted = 0
 

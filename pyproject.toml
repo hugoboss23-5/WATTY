@@ -40,6 +40,8 @@ watty-import-chatgpt = "watty.importers.chatgpt:main"
 watty-import-claude = "watty.importers.claude:main"
 watty-import-json = "watty.importers.generic:main"
 watty-http = "watty.server_http:run"
+watty-backup = "watty.backup:backup_main"
+watty-restore = "watty.backup:restore_main"
 
 [project.optional-dependencies]
 encrypted = ["sqlcipher3>=0.5.0"]
