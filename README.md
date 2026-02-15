@@ -241,7 +241,7 @@ pip install -e ".[dev]"
 python -m pytest tests/ -v
 ```
 
-74 tests, runs in ~9 seconds, no PyTorch download needed (uses mock embeddings).
+77 tests, runs in ~9 seconds, no PyTorch download needed (uses mock embeddings).
 
 Run benchmarks:
 

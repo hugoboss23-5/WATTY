@@ -88,6 +88,24 @@ def test_call_tool_shell_exit_code():
     assert "exit code 42" in result["text"]
 
 
+def test_call_tool_shell_explicit_bash():
+    result = call_tool(brain, "watty_shell", {"command": "echo bash_test", "shell": "bash"})
+    assert "bash_test" in result["text"]
+
+
+def test_call_tool_shell_unknown_shell():
+    result = call_tool(brain, "watty_shell", {"command": "echo x", "shell": "zsh"})
+    assert "Unknown shell" in result["text"]
+
+
+def test_call_tool_shell_cmd_on_linux():
+    import platform
+    if platform.system() == "Windows":
+        return  # skip on Windows
+    result = call_tool(brain, "watty_shell", {"command": "echo x", "shell": "cmd"})
+    assert "only available on Windows" in result["text"]
+
+
 def test_stdio_http_same_tools():
     """stdio and HTTP expose identical tool names."""
     http_names = {t["name"] for t in TOOL_DEFS}

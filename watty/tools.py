@@ -146,18 +146,27 @@ TOOL_DEFS = [
     {
         "name": "watty_shell",
         "description": (
-            "Execute a shell command on the user's machine and return the output. "
-            "Uses PowerShell on Windows, bash on Linux/macOS.\n\n"
+            "Execute a shell command on the user's machine and return the output.\n\n"
             "Use this when the user asks you to run commands, check system state, "
             "manage files, run scripts, install packages, or interact with their OS.\n\n"
             "The command runs in the user's home directory by default. "
             "Use the 'cwd' parameter to run from a specific directory.\n\n"
+            "Shell selection:\n"
+            "- 'auto' (default): PowerShell on Windows, bash on Linux/macOS\n"
+            "- 'powershell': Force PowerShell (works on any OS with pwsh/powershell installed)\n"
+            "- 'bash': Force bash\n"
+            "- 'cmd': Force cmd.exe (Windows only)\n\n"
             "Examples: 'dir', 'git status', 'npm install', 'python script.py', 'Get-Process'"
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
                 "command": {"type": "string", "description": "The shell command to execute."},
+                "shell": {
+                    "type": "string",
+                    "enum": ["auto", "powershell", "bash", "cmd"],
+                    "description": "Shell to use (default: auto). 'powershell' for PowerShell, 'bash' for bash, 'cmd' for cmd.exe.",
+                },
                 "cwd": {"type": "string", "description": "Working directory (default: user home)."},
                 "timeout": {"type": "integer", "description": "Timeout in seconds (default: 30, max: 300)."},
             },
@@ -292,12 +301,28 @@ def _run_shell(args: dict) -> dict:
     timeout = min(args.get("timeout", 30), 300)
     cwd = args.get("cwd") or os.path.expanduser("~")
     cwd = os.path.expanduser(cwd)
+    shell = args.get("shell", "auto").lower()
 
     is_windows = platform.system() == "Windows"
-    if is_windows:
-        shell_cmd = ["powershell", "-NoProfile", "-Command", command]
-    else:
+
+    if shell == "auto":
+        shell = "powershell" if is_windows else "bash"
+
+    if shell == "powershell":
+        # Try pwsh (PowerShell 7+) first, fall back to powershell (Windows PowerShell 5.x)
+        ps_exe = "pwsh" if _which("pwsh") else "powershell"
+        shell_cmd = [ps_exe, "-NoProfile", "-Command", command]
+        shell_label = ps_exe
+    elif shell == "bash":
         shell_cmd = ["/bin/bash", "-c", command]
+        shell_label = "/bin/bash"
+    elif shell == "cmd":
+        if not is_windows:
+            return {"text": "cmd is only available on Windows."}
+        shell_cmd = ["cmd.exe", "/C", command]
+        shell_label = "cmd.exe"
+    else:
+        return {"text": f"Unknown shell: {shell}. Use auto, powershell, bash, or cmd."}
 
     try:
         result = subprocess.run(
@@ -319,6 +344,12 @@ def _run_shell(args: dict) -> dict:
     except subprocess.TimeoutExpired:
         return {"text": f"Command timed out after {timeout}s."}
     except FileNotFoundError:
-        return {"text": f"Shell not found: {'powershell' if is_windows else '/bin/bash'}"}
+        return {"text": f"Shell not found: {shell_label}"}
     except Exception as e:
         return {"text": f"Execution error: {e}"}
+
+
+def _which(name: str) -> bool:
+    """Check if an executable exists on PATH."""
+    import shutil
+    return shutil.which(name) is not None
