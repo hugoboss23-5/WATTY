@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "watty-ai"
-version = "1.1.0"
+version = "1.2.0"
 description = "One memory. Every AI. It just knows you."
 readme = "README.md"
 requires-python = ">=3.10"

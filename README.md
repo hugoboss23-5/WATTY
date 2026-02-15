@@ -98,7 +98,7 @@ Watty:  → Clusters your knowledge. Surfaces connections you missed.
 
 **Your AI doesn't announce that it's using Watty. It just _knows_ things.** The way a colleague remembers your preferences without being asked.
 
-## 8 Tools
+## 9 Tools
 
 | Tool | What it does |
 |------|-------------|
@@ -109,6 +109,7 @@ Watty:  → Clusters your knowledge. Surfaces connections you missed.
 | `watty_forget` | Delete anything. Your soul, your rules |
 | `watty_surface` | Watty tells you what you didn't know you needed |
 | `watty_reflect` | Map your entire mind — providers, topics, time range |
+| `watty_context` | Lightning-fast pre-check — does Watty know about this? |
 | `watty_stats` | Quick brain health check |
 
 ## How it works
@@ -132,7 +133,7 @@ Watty:  → Clusters your knowledge. Surfaces connections you missed.
 │          WATTY (MCP Server)             │
 │                                         │
 │   SQLite + Semantic Vectors             │
-│   Everything indexed by meaning         │
+│   AES-256 encrypted at rest             │
 │   Runs locally · Zero latency           │
 │                                         │
 │   Your conversations, documents,        │
@@ -185,6 +186,7 @@ All optional. Watty works out of the box with zero configuration.
 | `WATTY_RELEVANCE_THRESHOLD` | `0.35` | Min similarity score (0-1) |
 | `WATTY_CHUNK_SIZE` | `1500` | Characters per memory chunk |
 | `WATTY_CHUNK_OVERLAP` | `200` | Overlap between chunks |
+| `WATTY_DB_KEY` | auto-generated | Encryption key (overrides keyfile) |
 
 ## FAQ
 
@@ -197,11 +199,11 @@ If you install with `.[torch]`, `sentence-transformers` pulls in PyTorch (~2GB).
 **How much disk space does it use after install?**  
 The embedding model is ~80MB. After that, your memories are just SQLite rows — thousands of documents fit in megabytes.
 
-**Is my data really private?**  
-Watty is a local MCP server. Your data lives in `~/.watty/brain.db` on your machine. No network calls except downloading the embedding model the first time. Read the code — it's ~850 lines of logic. You can audit it in 20 minutes.
+**Is my data really private?**
+Watty is a local MCP server. Your data lives in `~/.watty/brain.db` on your machine, encrypted at rest with AES-256 if you `pip install watty-ai[encrypted]`. No network calls except downloading the embedding model the first time. Read the code — it's ~1000 lines of logic. You can audit it in 20 minutes.
 
-**Can I back up my brain?**  
-Copy `~/.watty/brain.db`. That's your entire memory. One file.
+**Can I back up my brain?**
+`watty-backup` creates a compressed archive with your database, encryption key, and manifest. `watty-restore` brings it back. Or just copy `~/.watty/brain.db`.
 
 **Can I delete specific memories?**  
 Yes. `watty_forget` can delete by search query, specific IDs, provider, or date. Your soul, your rules.
@@ -219,7 +221,7 @@ pip install -e ".[dev]"
 python -m pytest tests/ -v
 ```
 
-31 tests, runs in ~3 seconds, no PyTorch download needed (uses mock embeddings).
+46 tests, runs in ~4 seconds, no PyTorch download needed (uses mock embeddings).
 
 ## Built by
 
