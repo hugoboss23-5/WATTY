@@ -28,6 +28,7 @@ from watty.config import (
 from watty.embeddings_loader import embed_text, cosine_similarity
 from watty.crypto import connect as crypto_connect
 from watty.embedding_queue import EmbeddingQueue
+from watty.migrations import run_migrations
 
 
 class Brain:
@@ -88,14 +89,9 @@ class Brain:
                 scanned_at TEXT NOT NULL,
                 chunk_count INTEGER DEFAULT 0
             );
-
-            CREATE INDEX IF NOT EXISTS idx_chunks_hash ON chunks(content_hash);
-            CREATE INDEX IF NOT EXISTS idx_chunks_created ON chunks(created_at);
-            CREATE INDEX IF NOT EXISTS idx_chunks_provider ON chunks(provider);
-            CREATE INDEX IF NOT EXISTS idx_chunks_source ON chunks(source_type);
-            CREATE INDEX IF NOT EXISTS idx_scan_log_hash ON scan_log(file_hash);
         """)
         conn.commit()
+        run_migrations(conn)
         conn.close()
 
     def _connect(self):
