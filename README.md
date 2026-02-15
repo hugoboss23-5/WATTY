@@ -28,6 +28,8 @@ pip install -e .
 
 > ⚠️ **Heads up:** `sentence-transformers` pulls in PyTorch (~2GB download). First install takes a few minutes. After that, Watty starts in seconds.
 
+> 🔧 **Claude CLI Users:** See **[CLI-SETUP.md](CLI-SETUP.md)** for detailed connection configuration and `claude-cli-config.json` for a ready-to-use config file.
+
 Add to your Claude Desktop config:
 
 **Mac/Linux:** `~/.config/claude/claude_desktop_config.json`  

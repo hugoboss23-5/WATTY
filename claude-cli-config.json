@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "watty": {
+      "command": "C:\\Users\\bulli\\AppData\\Roaming\\npm\\claude",
+      "args": [],
+      "description": "Watty - Persistent memory for AI",
+      "env": {
+        "WATTY_HOME": "${HOME}/.watty/",
+        "WATTY_EMBEDDING_MODEL": "all-MiniLM-L6-v2",
+        "WATTY_TOP_K": "10",
+        "WATTY_RELEVANCE_THRESHOLD": "0.35",
+        "WATTY_CHUNK_SIZE": "1500",
+        "WATTY_CHUNK_OVERLAP": "200"
+      }
+    }
+  },
+  "_meta": {
+    "created": "2026-02-15",
+    "purpose": "Claude CLI connection configuration for Watty MCP server",
+    "installation_path": "C:\\Users\\bulli\\AppData\\Roaming\\npm\\claude",
+    "notes": "This configuration connects the Claude CLI to the Watty MCP server for persistent AI memory"
+  }
+}
