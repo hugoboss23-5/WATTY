@@ -73,9 +73,9 @@ Watty speaks MCP over **stdio** and **HTTP/SSE**.
 | **Windsurf** | ✅ Works now | stdio transport |
 | **Claude Code** | ✅ Works now | stdio transport |
 | **VS Code + Copilot** | ✅ Works now | Via MCP extension |
-| **ChatGPT** | ✅ Works now | HTTP transport (`watty serve --http`) |
-| **Gemini** | ✅ Works now | HTTP transport (`watty serve --http`) |
-| **Grok** | ✅ Works now | HTTP transport (`watty serve --http`) |
+| **ChatGPT** | 🔧 HTTP transport ready | Server works, awaiting platform MCP support |
+| **Gemini** | 🔧 HTTP transport ready | Server works, awaiting platform MCP support |
+| **Grok** | 🔧 HTTP transport ready | Server works, awaiting platform MCP support |
 
 stdio for local clients. `watty serve --http` for everything else.
 
