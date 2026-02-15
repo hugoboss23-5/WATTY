@@ -100,6 +100,15 @@ def cmd_restore(args):
     restore(args.archive, force=args.force, db_path=args.db_path)
 
 
+def cmd_re_embed(args):
+    from watty.log import setup
+    setup()
+    from watty.brain import Brain
+    brain = Brain(db_path=args.db_path)
+    count = brain.re_embed()
+    print(f"Re-embedded {count} chunks")
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="watty",
@@ -137,6 +146,9 @@ def main():
     p_restore.add_argument("archive", help="Path to .tar.gz backup")
     p_restore.add_argument("--force", action="store_true", help="Overwrite existing brain.db")
 
+    # re-embed
+    sub.add_parser("re-embed", help="Re-embed chunks with missing vectors")
+
     args = parser.parse_args()
 
     # Apply global flags
@@ -160,6 +172,8 @@ def main():
         cmd_backup(args)
     elif args.command == "restore":
         cmd_restore(args)
+    elif args.command == "re-embed":
+        cmd_re_embed(args)
 
 
 if __name__ == "__main__":

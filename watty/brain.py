@@ -47,6 +47,8 @@ class Brain:
         self._vector_ids: list[int] = []
         self._index_dirty = True
         self._eq = EmbeddingQueue(self.db_path)
+        self._has_embeddings = True
+        self._has_fts = self._check_fts()
 
     def _init_db(self):
         conn = self._connect()
@@ -96,7 +98,61 @@ class Brain:
         conn.close()
 
     def _connect(self):
-        return crypto_connect(self.db_path)
+        """Connect with retry on lock contention (3 attempts, 100ms/500ms/2s)."""
+        delays = [0.1, 0.5, 2.0]
+        last_err = None
+        for attempt in range(len(delays) + 1):
+            try:
+                return crypto_connect(self.db_path)
+            except Exception as e:
+                if "locked" in str(e).lower() and attempt < len(delays):
+                    last_err = e
+                    log.warning(f"Database locked, retrying in {delays[attempt]}s...")
+                    time.sleep(delays[attempt])
+                else:
+                    raise
+        raise last_err
+
+    def _check_fts(self) -> bool:
+        """Try to create FTS5 table. Returns True if FTS is available."""
+        try:
+            conn = crypto_connect(self.db_path)
+            conn.execute("CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(content)")
+            conn.commit()
+            conn.close()
+            return True
+        except Exception:
+            return False
+
+    def _safe_embed(self, text: str) -> Optional[np.ndarray]:
+        """embed_text with error boundary. Returns None on failure."""
+        try:
+            return embed_text(text)
+        except ImportError:
+            self._has_embeddings = False
+            log.warning("No embedding backend — storing text without vector")
+            return None
+        except Exception as e:
+            log.warning(f"Embedding failed for chunk: {e}")
+            return None
+
+    def _fts_insert(self, conn, chunk_id: int, content: str):
+        """Insert into FTS index if available."""
+        if not self._has_fts:
+            return
+        try:
+            conn.execute("INSERT INTO chunks_fts (rowid, content) VALUES (?, ?)", (chunk_id, content))
+        except Exception:
+            pass
+
+    def _fts_delete(self, conn, chunk_id: int, content: str):
+        """Delete from FTS index if available."""
+        if not self._has_fts:
+            return
+        try:
+            conn.execute("INSERT INTO chunks_fts (chunks_fts, rowid, content) VALUES ('delete', ?, ?)", (chunk_id, content))
+        except Exception:
+            pass
 
     # ── Chunking ─────────────────────────────────────────
 
@@ -158,12 +214,14 @@ class Brain:
                     if existing:
                         continue
 
-                    embedding = embed_text(chunk)
-                    conn.execute(
+                    embedding = self._safe_embed(chunk)
+                    emb_bytes = embedding.tobytes() if embedding is not None else None
+                    cursor2 = conn.execute(
                         "INSERT INTO chunks (conversation_id, role, content, chunk_index, embedding, created_at, provider, content_hash, source_type) "
                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                        (conv_id, role, chunk, i, embedding.tobytes(), now, provider, content_hash, "conversation"),
+                        (conv_id, role, chunk, i, emb_bytes, now, provider, content_hash, "conversation"),
                     )
+                    self._fts_insert(conn, cursor2.lastrowid, chunk)
                     chunks_stored += 1
 
             conn.commit()
@@ -260,6 +318,7 @@ class Brain:
                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (conv_id, "document", chunk, i, None, now, "file_scan", content_hash, "file", str(filepath)),
                     )
+                    self._fts_insert(conn, cursor2.lastrowid, chunk)
                     self._eq.enqueue(cursor2.lastrowid, chunk)
                     file_chunks += 1
 
@@ -307,24 +366,101 @@ class Brain:
         vectors = []
         ids = []
         for row in rows:
-            vec = np.frombuffer(row["embedding"], dtype=np.float32)
-            if len(vec) == EMBEDDING_DIMENSION:
-                vectors.append(vec)
-                ids.append(row["id"])
+            try:
+                vec = np.frombuffer(row["embedding"], dtype=np.float32)
+                if len(vec) == EMBEDDING_DIMENSION and not np.any(np.isnan(vec)):
+                    vectors.append(vec)
+                    ids.append(row["id"])
+                else:
+                    log.debug(f"Skipping corrupt vector for chunk {row['id']}: dim={len(vec)}")
+            except Exception as e:
+                log.debug(f"Skipping unreadable vector for chunk {row['id']}: {e}")
 
         self._vectors = np.array(vectors) if vectors else None
         self._vector_ids = ids
         self._index_dirty = False
 
+    def _recall_fts(self, query: str, top_k: int, provider_filter: str = None) -> list[dict]:
+        """Fallback search using FTS5 or LIKE when no vectors available."""
+        conn = self._connect()
+        results = []
+
+        if self._has_fts:
+            try:
+                # FTS5 search
+                fts_query = " OR ".join(query.split()[:10])
+                rows = conn.execute(
+                    "SELECT c.*, conv.provider as conv_provider FROM chunks c "
+                    "JOIN conversations conv ON c.conversation_id = conv.id "
+                    "WHERE c.rowid IN (SELECT rowid FROM chunks_fts WHERE content MATCH ?) "
+                    "LIMIT ?",
+                    (fts_query, top_k),
+                ).fetchall()
+                for row in rows:
+                    if provider_filter and row["provider"] != provider_filter:
+                        continue
+                    results.append({
+                        "content": row["content"],
+                        "score": 0.5,
+                        "similarity": 0.5,
+                        "provider": row["provider"],
+                        "role": row["role"],
+                        "created_at": row["created_at"],
+                        "source_type": row["source_type"],
+                        "source_path": row["source_path"],
+                    })
+                conn.close()
+                if results:
+                    return results[:top_k]
+            except Exception:
+                pass
+
+        # Final fallback: LIKE query
+        words = query.split()[:5]
+        conditions = " OR ".join(["content LIKE ?" for _ in words])
+        params = [f"%{w}%" for w in words]
+        try:
+            rows = conn.execute(
+                f"SELECT c.*, conv.provider as conv_provider FROM chunks c "
+                f"JOIN conversations conv ON c.conversation_id = conv.id "
+                f"WHERE {conditions} LIMIT ?",
+                params + [top_k],
+            ).fetchall()
+            for row in rows:
+                if provider_filter and row["provider"] != provider_filter:
+                    continue
+                results.append({
+                    "content": row["content"],
+                    "score": 0.3,
+                    "similarity": 0.3,
+                    "provider": row["provider"],
+                    "role": row["role"],
+                    "created_at": row["created_at"],
+                    "source_type": row["source_type"],
+                    "source_path": row["source_path"],
+                })
+        except Exception:
+            pass
+        conn.close()
+        return results[:top_k]
+
     def recall(self, query: str, top_k: int = None, provider_filter: str = None) -> list[dict]:
         with timed("watty_recall") as t:
+            effective_k = top_k or TOP_K
             if self._index_dirty:
                 self._build_index()
 
             if self._vectors is None or len(self._vectors) == 0:
-                return []
+                # Fallback: FTS or LIKE search
+                final = self._recall_fts(query, effective_k, provider_filter)
+                log.info(f'watty_recall query="{query[:50]}" mode=fts results={len(final)} duration_ms={t.elapsed_ms:.0f}')
+                return final
 
-            query_vec = embed_text(query)
+            query_vec = self._safe_embed(query)
+            if query_vec is None:
+                final = self._recall_fts(query, effective_k, provider_filter)
+                log.info(f'watty_recall query="{query[:50]}" mode=fts_fallback results={len(final)} duration_ms={t.elapsed_ms:.0f}')
+                return final
             similarities = np.dot(self._vectors, query_vec)
 
             conn = self._connect()
@@ -658,6 +794,50 @@ class Brain:
             "top_score": round(float(similarities[top_indices[0]]), 4) if len(top_indices) > 0 else 0,
             "matches": matches,
         }
+
+    # ── Re-embed & Validate ─────────────────────────────
+
+    def re_embed(self) -> int:
+        """Re-embed all chunks with null vectors. Returns count re-embedded."""
+        conn = self._connect()
+        rows = conn.execute("SELECT id, content FROM chunks WHERE embedding IS NULL").fetchall()
+        conn.close()
+        count = 0
+        for row in rows:
+            try:
+                vec = embed_text(row["content"])
+                conn = self._connect()
+                conn.execute("UPDATE chunks SET embedding = ? WHERE id = ?", (vec.tobytes(), row["id"]))
+                conn.commit()
+                conn.close()
+                count += 1
+            except Exception as e:
+                log.warning(f"Failed to re-embed chunk {row['id']}: {e}")
+        self._index_dirty = True
+        log.info(f"watty_re_embed processed={len(rows)} succeeded={count}")
+        return count
+
+    def validate_vectors(self) -> dict:
+        """Check all stored vectors for corruption. Used by watty doctor."""
+        conn = self._connect()
+        rows = conn.execute("SELECT id, embedding FROM chunks WHERE embedding IS NOT NULL").fetchall()
+        conn.close()
+        valid = 0
+        corrupt = 0
+        null_count = 0
+        for row in rows:
+            try:
+                vec = np.frombuffer(row["embedding"], dtype=np.float32)
+                if len(vec) != EMBEDDING_DIMENSION or np.any(np.isnan(vec)):
+                    corrupt += 1
+                else:
+                    valid += 1
+            except Exception:
+                corrupt += 1
+        conn = self._connect()
+        null_count = conn.execute("SELECT COUNT(*) FROM chunks WHERE embedding IS NULL").fetchone()[0]
+        conn.close()
+        return {"valid": valid, "corrupt": corrupt, "null": null_count}
 
     # ── Stats ────────────────────────────────────────────
 
