@@ -220,6 +220,19 @@ Yes. `watty_forget` can delete by search query, specific IDs, provider, or date.
 **Will it slow down with thousands of memories?**
 Recall stays under 2ms up to 10k memories with numpy brute-force. Install `pip install watty-ai[fast]` for faiss approximate nearest neighbor search at larger scales. Cluster time scales linearly (~30ms at 1k, ~660ms at 10k).
 
+## Performance
+
+Benchmarked with mock embeddings (384-dim vectors, numpy brute-force):
+
+| Memories | Recall (p50) | Recall (p99) | Store/sec | Cluster | RSS |
+|----------|-------------|-------------|-----------|---------|-----|
+| 1,000 | 1.4ms | 3.7ms | 102/s | 31ms | 115MB |
+| 10,000 | 1.1ms | 1.9ms | 97/s | 662ms | 177MB |
+
+Install `pip install watty-ai[fast]` for faiss approximate nearest neighbor search at larger scales.
+
+Run it yourself: `python -m tests.bench`
+
 ## Development
 
 ```bash
