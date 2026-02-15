@@ -169,6 +169,27 @@ def main():
     results.append({"operation": "memory_1k", "rss_mb": round(mem_1k, 1)})
     print(f"  RAM: {mem_1k:.1f}MB")
 
+    # Scale 3: 10k memories
+    print("\nBenchmarking at 10k memories...")
+    tmp3 = tempfile.mkdtemp()
+    brain3 = Brain(db_path=os.path.join(tmp3, "bench.db"))
+
+    r = bench_store(brain3, 10000)
+    results.append(r)
+    print(f"  store: {r['throughput']}/s ({r['per_item_ms']}ms each)")
+
+    r = bench_recall(brain3, queries * 20, "10k memories")
+    results.append(r)
+    print(f"  recall: avg={r['avg_ms']}ms p50={r['p50_ms']}ms p99={r['p99_ms']}ms")
+
+    r = bench_cluster(brain3, "10k memories")
+    results.append(r)
+    print(f"  cluster: {r['total_ms']}ms ({r['clusters_found']} clusters)")
+
+    mem_10k = get_memory_mb()
+    results.append({"operation": "memory_10k", "rss_mb": round(mem_10k, 1)})
+    print(f"  RAM: {mem_10k:.1f}MB")
+
     # Save results
     output = {
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),

@@ -23,6 +23,7 @@ Watty is an [MCP](https://modelcontextprotocol.io) server that gives **any AI** 
 ```bash
 pip install watty-ai[onnx]    # Recommended: ~100MB, no GPU needed
 # pip install watty-ai[torch] # Full: ~2GB, includes PyTorch
+# pip install watty-ai[fast]  # Add faiss for ANN search at scale
 ```
 
 <details>
@@ -56,9 +57,9 @@ Restart Claude Desktop. Done. Watty is alive.
 ## Import your history
 
 ```bash
-watty-import-chatgpt ~/Downloads/chatgpt-export.zip
-watty-import-claude ~/Downloads/claude-export.json
-watty-import-json ~/conversations.json
+watty import chatgpt ~/Downloads/chatgpt-export.zip
+watty import claude ~/Downloads/claude-export.json
+watty import json ~/conversations.json
 ```
 
 ## Platform support
@@ -72,11 +73,11 @@ Watty speaks MCP over **stdio** and **HTTP/SSE**.
 | **Windsurf** | ✅ Works now | stdio transport |
 | **Claude Code** | ✅ Works now | stdio transport |
 | **VS Code + Copilot** | ✅ Works now | Via MCP extension |
-| **ChatGPT** | ✅ Works now | HTTP transport (`watty-http`) |
-| **Gemini** | ✅ Works now | HTTP transport (`watty-http`) |
-| **Grok** | ✅ Works now | HTTP transport (`watty-http`) |
+| **ChatGPT** | ✅ Works now | HTTP transport (`watty serve --http`) |
+| **Gemini** | ✅ Works now | HTTP transport (`watty serve --http`) |
+| **Grok** | ✅ Works now | HTTP transport (`watty serve --http`) |
 
-stdio for local clients. `watty-http` for everything else.
+stdio for local clients. `watty serve --http` for everything else.
 
 ## What happens next
 
@@ -187,11 +188,12 @@ All optional. Watty works out of the box with zero configuration.
 | `WATTY_CHUNK_SIZE` | `1500` | Characters per memory chunk |
 | `WATTY_CHUNK_OVERLAP` | `200` | Overlap between chunks |
 | `WATTY_DB_KEY` | auto-generated | Encryption key (overrides keyfile) |
+| `WATTY_LOG_LEVEL` | `INFO` | Logging verbosity (`DEBUG`, `INFO`, `WARNING`) |
 
 ## FAQ
 
 **Does it work with ChatGPT / Gemini / Grok?**
-Yes. Run `watty-http` to start the HTTP/SSE server on `localhost:8766`, then point your MCP client at it. Same 8 tools, same brain.
+Yes. Run `watty serve --http` to start the HTTP/SSE server on `localhost:8766`, then point your MCP client at it. Same 9 tools, same brain.
 
 **Why is the first install so large?**
 If you install with `.[torch]`, `sentence-transformers` pulls in PyTorch (~2GB). Use `.[onnx]` instead — same model, ~100MB total, no GPU dependency. Watty auto-detects whichever backend you have.
@@ -203,7 +205,7 @@ The embedding model is ~80MB. After that, your memories are just SQLite rows —
 Watty is a local MCP server. Your data lives in `~/.watty/brain.db` on your machine, encrypted at rest with AES-256 if you `pip install watty-ai[encrypted]`. No network calls except downloading the embedding model the first time. Read the code — it's ~1000 lines of logic. You can audit it in 20 minutes.
 
 **Can I back up my brain?**
-`watty-backup` creates a compressed archive with your database, encryption key, and manifest. `watty-restore` brings it back. Or just copy `~/.watty/brain.db`.
+`watty backup` creates a compressed archive with your database, encryption key, and manifest. `watty restore` brings it back. Or just copy `~/.watty/brain.db`.
 
 **Can I delete specific memories?**  
 Yes. `watty_forget` can delete by search query, specific IDs, provider, or date. Your soul, your rules.
@@ -211,8 +213,8 @@ Yes. `watty_forget` can delete by search query, specific IDs, provider, or date.
 **What's the embedding model?**  
 [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) — a 22M parameter sentence transformer. Small, fast, runs on any machine. No GPU needed.
 
-**Will it slow down with thousands of memories?**  
-Watty does brute-force cosine similarity over numpy arrays. This is fast up to ~50k memories on any modern machine. Beyond that, we'll add approximate nearest neighbor search in a future version.
+**Will it slow down with thousands of memories?**
+Recall stays under 2ms up to 10k memories with numpy brute-force. Install `pip install watty-ai[fast]` for faiss approximate nearest neighbor search at larger scales. Cluster time scales linearly (~30ms at 1k, ~660ms at 10k).
 
 ## Development
 
@@ -221,7 +223,13 @@ pip install -e ".[dev]"
 python -m pytest tests/ -v
 ```
 
-46 tests, runs in ~4 seconds, no PyTorch download needed (uses mock embeddings).
+69 tests, runs in ~9 seconds, no PyTorch download needed (uses mock embeddings).
+
+Run benchmarks:
+
+```bash
+python -m tests.bench    # Measures store, recall, cluster, scan at 100/1k/10k scales
+```
 
 ## Built by
 

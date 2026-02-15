@@ -14,17 +14,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Async embedding pipeline** — bulk operations (scan) store text immediately, embed in background thread. Single ops still embed inline. `pending_embeddings` in stats.
 - **`watty_context` tool** — lightweight pre-check (<50ms) returns relevance scores and short previews before committing to full recall.
 - **Shared tool registry** — single `watty/tools.py` is the source of truth for both stdio and HTTP servers. Zero duplication.
-- **46 tests** covering brain, crypto, backup, async pipeline, context, importers, HTTP transport, and backend auto-detection.
+- **Schema migration system** — versioned migrations with per-migration transactions and automatic rollback on failure. New databases start at latest version; old ones migrate forward.
+- **Structured logging** — all `print()` replaced with Python `logging` module. Rotating file handler (5MB x 3) at `~/.watty/watty.log`. Operation timing on recall, store, scan, cluster.
+- **`watty doctor`** — health check CLI. Validates database, embeddings, schema version, memory stats, backups. `--json` for machine output.
+- **Unified CLI** — one entry point (`watty`) with subcommands: `serve`, `import`, `doctor`, `stats`, `backup`, `restore`, `re-embed`. Old entry points kept as aliases.
+- **Error boundaries** — embedding failures store null vectors (re-embed later via `watty re-embed`). FTS5 fallback when no embedding backend. LIKE fallback when no FTS5. Connection retry on SQLite lock contention. Corrupt vector detection and skip.
+- **Benchmark suite** — `python -m tests.bench` measures store throughput, recall latency (avg/p50/p99), cluster time, scan speed, RSS at 100/1k/10k scales. JSON output to `~/.watty/benchmark.json`.
+- **Optional faiss index** — `pip install watty-ai[fast]` enables approximate nearest neighbor search via `faiss-cpu` for brains with 1k+ memories.
+- **Lazy vector loading** — vectors loaded on first recall, not on startup.
+- **69 tests** covering brain, crypto, backup, async pipeline, context, importers, HTTP transport, backend auto-detection, migrations, logging, CLI, error boundaries, and performance.
 
 ### Changed
 
 - Rewrote `watty_recall` description for maximum trigger rate — user benefit over technical function.
 - `brain.py` uses `crypto.connect()` instead of raw `sqlite3.connect()`.
 - `server.py` reduced from 436 → 56 lines via shared tool registry.
+- All `print()` calls replaced with structured logging across entire codebase.
 
 ### Roadmap
 
-- **v1.3:** Approximate nearest neighbor search for 50k+ memories, multi-user support
+- **v1.3:** Multi-user support, web dashboard, plugin system
 
 ## [1.1.0] - 2026-02-14
 
