@@ -177,7 +177,7 @@ He skips what he should (`.git`, `node_modules`, `__pycache__`, binaries) and de
 | **Self-organization** | Automatic clustering | You organize it | You organize it |
 | **Privacy** | Your machine. Nothing leaves. | Read the terms. | Usually local |
 | **Cost** | Free forever | Free tier → paid | Free (usually) |
-| **Code** | ~850 lines of logic. Audit in 20 min. | Proprietary | Thousands+ |
+| **Code** | ~1200 lines of logic. Audit in 30 min. | Proprietary | Thousands+ |
 
 ## Configuration
 
@@ -198,7 +198,7 @@ All optional. Watty works out of the box with zero configuration.
 ## FAQ
 
 **Does it work with ChatGPT / Gemini / Grok?**
-Yes. Run `watty serve --http` to start the HTTP/SSE server on `localhost:8766`, then point your MCP client at it. Same 9 tools, same brain.
+Yes. Run `watty serve --http` to start the HTTP/SSE server on `localhost:8766`, then point your MCP client at it. Same 10 tools, same brain.
 
 **Why is the first install so large?**
 If you install with `.[torch]`, `sentence-transformers` pulls in PyTorch (~2GB). Use `.[onnx]` instead — same model, ~100MB total, no GPU dependency. Watty auto-detects whichever backend you have.
@@ -207,7 +207,7 @@ If you install with `.[torch]`, `sentence-transformers` pulls in PyTorch (~2GB).
 The embedding model is ~80MB. After that, your memories are just SQLite rows — thousands of documents fit in megabytes.
 
 **Is my data really private?**
-Watty is a local MCP server. Your data lives in `~/.watty/brain.db` on your machine, encrypted at rest with AES-256 if you `pip install watty-ai[encrypted]`. No network calls except downloading the embedding model the first time. Read the code — it's ~1000 lines of logic. You can audit it in 20 minutes.
+Watty is a local MCP server. Your data lives in `~/.watty/brain.db` on your machine, encrypted at rest with AES-256 if you `pip install watty-ai[encrypted]`. No network calls except downloading the embedding model the first time. Read the code — it's ~1200 lines of core logic. You can audit it in 30 minutes.
 
 **Can I back up my brain?**
 `watty backup` creates a compressed archive with your database, encryption key, and manifest. `watty restore` brings it back. Or just copy `~/.watty/brain.db`.
@@ -241,7 +241,7 @@ pip install -e ".[dev]"
 python -m pytest tests/ -v
 ```
 
-69 tests, runs in ~9 seconds, no PyTorch download needed (uses mock embeddings).
+74 tests, runs in ~9 seconds, no PyTorch download needed (uses mock embeddings).
 
 Run benchmarks:
 
