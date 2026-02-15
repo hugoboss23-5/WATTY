@@ -115,7 +115,7 @@ Watty:  → Clusters your knowledge. Surfaces connections you missed.
 | `watty_surface` | Watty tells you what you didn't know you needed |
 | `watty_reflect` | Map your entire mind — providers, topics, time range |
 | `watty_context` | Lightning-fast pre-check — does Watty know about this? |
-| `watty_shell` | Run any shell command — PowerShell on Windows, bash on Linux/macOS |
+| `watty_execute` | Run a command, get the output back as text |
 | `watty_stats` | Quick brain health check |
 
 ## How it works

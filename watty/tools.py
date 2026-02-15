@@ -144,31 +144,28 @@ TOOL_DEFS = [
         "inputSchema": {"type": "object", "properties": {}},
     },
     {
-        "name": "watty_shell",
+        "name": "watty_execute",
         "description": (
-            "Execute a shell command on the user's machine and return the output.\n\n"
-            "Use this when the user asks you to run commands, check system state, "
-            "manage files, run scripts, install packages, or interact with their OS.\n\n"
-            "The command runs in the user's home directory by default. "
-            "Use the 'cwd' parameter to run from a specific directory.\n\n"
-            "Shell selection:\n"
-            "- 'auto' (default): PowerShell on Windows, bash on Linux/macOS\n"
-            "- 'powershell': Force PowerShell (works on any OS with pwsh/powershell installed)\n"
-            "- 'bash': Force bash\n"
-            "- 'cmd': Force cmd.exe (Windows only)\n\n"
-            "Examples: 'dir', 'git status', 'npm install', 'python script.py', 'Get-Process'"
+            "Run a command on the user's machine and return its full text output.\n\n"
+            "Just pass the command string. The output (stdout + stderr) comes back as text.\n"
+            "Runs in PowerShell on Windows, bash on Linux/macOS. Timeout is 120 seconds.\n\n"
+            "Examples:\n"
+            '  command: "git status"\n'
+            '  command: "claude.exe --print \\"Summarize this project\\""\n'
+            '  command: "python script.py"\n'
+            '  command: "dir C:\\\\Projects"'
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
-                "command": {"type": "string", "description": "The shell command to execute."},
-                "shell": {
+                "command": {
                     "type": "string",
-                    "enum": ["auto", "powershell", "bash", "cmd"],
-                    "description": "Shell to use (default: auto). 'powershell' for PowerShell, 'bash' for bash, 'cmd' for cmd.exe.",
+                    "description": "The command to run. Output is returned as text.",
                 },
-                "cwd": {"type": "string", "description": "Working directory (default: user home)."},
-                "timeout": {"type": "integer", "description": "Timeout in seconds (default: 120, max: 300)."},
+                "cwd": {
+                    "type": "string",
+                    "description": "Working directory. Defaults to user's home folder.",
+                },
             },
             "required": ["command"],
         },
@@ -286,43 +283,27 @@ def call_tool(brain: Brain, name: str, args: dict) -> dict:
             f"  Database: {stats['db_path']}{pending_text}"
         )}
 
-    elif name == "watty_shell":
-        return _run_shell(args)
+    elif name == "watty_execute":
+        return _run_execute(args)
 
     return {"text": f"Unknown tool: {name}", "isError": True}
 
 
-def _run_shell(args: dict) -> dict:
-    """Execute a shell command and return stdout/stderr."""
+def _run_execute(args: dict) -> dict:
+    """Execute a command and return stdout/stderr as text."""
     command = args.get("command", "").strip()
     if not command:
         return {"text": "No command provided."}
 
-    timeout = min(args.get("timeout", 120), 300)
-    cwd = args.get("cwd") or os.path.expanduser("~")
-    cwd = os.path.expanduser(cwd)
-    shell = args.get("shell", "auto").lower()
+    timeout = 120
+    cwd = os.path.expanduser(args.get("cwd") or "~")
 
-    is_windows = platform.system() == "Windows"
-
-    if shell == "auto":
-        shell = "powershell" if is_windows else "bash"
-
-    if shell == "powershell":
-        # Try pwsh (PowerShell 7+) first, fall back to powershell (Windows PowerShell 5.x)
+    # Pick the right shell automatically — no user decision needed
+    if platform.system() == "Windows":
         ps_exe = "pwsh" if _which("pwsh") else "powershell"
         shell_cmd = [ps_exe, "-NoProfile", "-Command", command]
-        shell_label = ps_exe
-    elif shell == "bash":
-        shell_cmd = ["/bin/bash", "-c", command]
-        shell_label = "/bin/bash"
-    elif shell == "cmd":
-        if not is_windows:
-            return {"text": "cmd is only available on Windows."}
-        shell_cmd = ["cmd.exe", "/C", command]
-        shell_label = "cmd.exe"
     else:
-        return {"text": f"Unknown shell: {shell}. Use auto, powershell, bash, or cmd."}
+        shell_cmd = ["/bin/bash", "-c", command]
 
     try:
         result = subprocess.run(
@@ -344,7 +325,8 @@ def _run_shell(args: dict) -> dict:
     except subprocess.TimeoutExpired:
         return {"text": f"Command timed out after {timeout}s."}
     except FileNotFoundError:
-        return {"text": f"Shell not found: {shell_label}"}
+        shell_name = shell_cmd[0]
+        return {"text": f"Shell not found: {shell_name}"}
     except Exception as e:
         return {"text": f"Execution error: {e}"}
 
