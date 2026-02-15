@@ -353,6 +353,7 @@ class Brain:
     # ── Search ───────────────────────────────────────────
 
     def _build_index(self):
+        """Load vectors lazily on first access. Caches until dirty."""
         conn = self._connect()
         rows = conn.execute("SELECT id, embedding FROM chunks WHERE embedding IS NOT NULL").fetchall()
         conn.close()
@@ -360,6 +361,7 @@ class Brain:
         if not rows:
             self._vectors = None
             self._vector_ids = []
+            self._faiss_index = None
             self._index_dirty = False
             return
 
@@ -376,9 +378,35 @@ class Brain:
             except Exception as e:
                 log.debug(f"Skipping unreadable vector for chunk {row['id']}: {e}")
 
-        self._vectors = np.array(vectors) if vectors else None
+        self._vectors = np.array(vectors, dtype=np.float32) if vectors else None
         self._vector_ids = ids
+        self._faiss_index = None
         self._index_dirty = False
+
+        # Try faiss for faster search on large brains
+        if self._vectors is not None and len(self._vectors) >= 1000:
+            try:
+                import faiss
+                index = faiss.IndexFlatIP(EMBEDDING_DIMENSION)
+                index.add(self._vectors)
+                self._faiss_index = index
+                log.debug(f"Built faiss index with {len(self._vectors)} vectors")
+            except ImportError:
+                pass
+
+    def _search_vectors(self, query_vec: np.ndarray, top_k: int) -> list[tuple]:
+        """Search vectors using faiss if available, else numpy. Returns (idx, sim) pairs."""
+        if self._faiss_index is not None:
+            try:
+                import faiss
+                scores, indices = self._faiss_index.search(query_vec.reshape(1, -1), top_k)
+                return [(int(indices[0][i]), float(scores[0][i])) for i in range(len(indices[0])) if indices[0][i] >= 0]
+            except Exception:
+                pass
+        # Fallback: numpy brute force
+        similarities = np.dot(self._vectors, query_vec)
+        top_indices = np.argsort(similarities)[::-1][:top_k]
+        return [(int(idx), float(similarities[idx])) for idx in top_indices]
 
     def _recall_fts(self, query: str, top_k: int, provider_filter: str = None) -> list[dict]:
         """Fallback search using FTS5 or LIKE when no vectors available."""
@@ -461,15 +489,14 @@ class Brain:
                 final = self._recall_fts(query, effective_k, provider_filter)
                 log.info(f'watty_recall query="{query[:50]}" mode=fts_fallback results={len(final)} duration_ms={t.elapsed_ms:.0f}')
                 return final
-            similarities = np.dot(self._vectors, query_vec)
+            search_results = self._search_vectors(query_vec, max(effective_k, TOP_K) * 2)
 
             conn = self._connect()
             now_ts = time.time()
             results = []
 
-            for idx in np.argsort(similarities)[::-1][:max(top_k or TOP_K, TOP_K) * 2]:
+            for idx, sim in search_results:
                 chunk_id = self._vector_ids[idx]
-                sim = float(similarities[idx])
 
                 if sim < RELEVANCE_THRESHOLD:
                     continue
@@ -763,7 +790,9 @@ class Brain:
         if self._vectors is None or len(self._vectors) == 0:
             return {"has_memories": False, "total": 0, "top_score": 0, "matches": []}
 
-        query_vec = embed_text(query)
+        query_vec = self._safe_embed(query)
+        if query_vec is None:
+            return {"has_memories": False, "total": len(self._vector_ids), "top_score": 0, "matches": []}
         similarities = np.dot(self._vectors, query_vec)
 
         top_indices = np.argsort(similarities)[::-1][:top_k]
