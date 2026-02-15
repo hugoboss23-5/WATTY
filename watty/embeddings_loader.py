@@ -4,10 +4,10 @@ Selects the best available backend: onnx (light) or torch (heavy).
 The rest of the codebase imports from here.
 """
 
-import sys
 import numpy as np
 
 from watty.config import EMBEDDING_BACKEND
+from watty.log import log
 
 _embed_fn = None
 _cosine_fn = None
@@ -35,11 +35,11 @@ def _resolve():
     elif EMBEDDING_BACKEND == "auto":
         try:
             _embed_fn, _cosine_fn = _load_onnx()
-            print("[Watty] Using ONNX backend (~100MB)", file=sys.stderr, flush=True)
+            log.info("Using ONNX backend (~100MB)")
         except ImportError:
             try:
                 _embed_fn, _cosine_fn = _load_torch()
-                print("[Watty] Using PyTorch backend (~2GB)", file=sys.stderr, flush=True)
+                log.info("Using PyTorch backend (~2GB)")
             except ImportError:
                 raise ImportError(
                     "No embedding backend available. Install one:\n"

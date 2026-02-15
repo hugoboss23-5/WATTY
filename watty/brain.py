@@ -29,6 +29,7 @@ from watty.embeddings_loader import embed_text, cosine_similarity
 from watty.crypto import connect as crypto_connect
 from watty.embedding_queue import EmbeddingQueue
 from watty.migrations import run_migrations
+from watty.log import log, timed
 
 
 class Brain:
@@ -132,41 +133,43 @@ class Brain:
         conversation_id: str = None,
         metadata: dict = None,
     ) -> int:
-        conn = self._connect()
-        now = datetime.now(timezone.utc).isoformat()
-        cursor = conn.execute(
-            "INSERT INTO conversations (provider, conversation_id, created_at, metadata) VALUES (?, ?, ?, ?)",
-            (provider, conversation_id, now, json.dumps(metadata or {})),
-        )
-        conv_id = cursor.lastrowid
-        chunks_stored = 0
+        with timed("watty_store") as t:
+            conn = self._connect()
+            now = datetime.now(timezone.utc).isoformat()
+            cursor = conn.execute(
+                "INSERT INTO conversations (provider, conversation_id, created_at, metadata) VALUES (?, ?, ?, ?)",
+                (provider, conversation_id, now, json.dumps(metadata or {})),
+            )
+            conv_id = cursor.lastrowid
+            chunks_stored = 0
 
-        for msg in messages:
-            role = msg.get("role", "unknown")
-            content = msg.get("content", "")
-            if not content.strip():
-                continue
-
-            text_chunks = self._chunk_text(content)
-            for i, chunk in enumerate(text_chunks):
-                content_hash = self._hash(chunk)
-                existing = conn.execute(
-                    "SELECT id FROM chunks WHERE content_hash = ?", (content_hash,)
-                ).fetchone()
-                if existing:
+            for msg in messages:
+                role = msg.get("role", "unknown")
+                content = msg.get("content", "")
+                if not content.strip():
                     continue
 
-                embedding = embed_text(chunk)
-                conn.execute(
-                    "INSERT INTO chunks (conversation_id, role, content, chunk_index, embedding, created_at, provider, content_hash, source_type) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (conv_id, role, chunk, i, embedding.tobytes(), now, provider, content_hash, "conversation"),
-                )
-                chunks_stored += 1
+                text_chunks = self._chunk_text(content)
+                for i, chunk in enumerate(text_chunks):
+                    content_hash = self._hash(chunk)
+                    existing = conn.execute(
+                        "SELECT id FROM chunks WHERE content_hash = ?", (content_hash,)
+                    ).fetchone()
+                    if existing:
+                        continue
 
-        conn.commit()
-        conn.close()
-        self._index_dirty = True
+                    embedding = embed_text(chunk)
+                    conn.execute(
+                        "INSERT INTO chunks (conversation_id, role, content, chunk_index, embedding, created_at, provider, content_hash, source_type) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (conv_id, role, chunk, i, embedding.tobytes(), now, provider, content_hash, "conversation"),
+                    )
+                    chunks_stored += 1
+
+            conn.commit()
+            conn.close()
+            self._index_dirty = True
+        log.info(f"watty_store provider={provider} stored={chunks_stored} duration_ms={t.elapsed_ms:.0f}")
         return chunks_stored
 
     def store_memory(self, content: str, provider: str = "manual", metadata: dict = None) -> int:
@@ -183,6 +186,8 @@ class Brain:
         Watty finds his own food. Point him at a directory,
         he eats everything worth eating. No hand-feeding.
         """
+        _scan_timer = timed("watty_scan")
+        _scan_timer.__enter__()
         scan_path = Path(path).expanduser().resolve()
         if not scan_path.exists():
             return {"error": f"Path does not exist: {path}", "files_scanned": 0, "chunks_stored": 0}
@@ -275,6 +280,9 @@ class Brain:
         self._eq.flush()
         self._index_dirty = True
 
+        _scan_timer.__exit__(None, None, None)
+        log.info(f"watty_scan path={scan_path} files={files_scanned} chunks={chunks_stored} duration_ms={_scan_timer.elapsed_ms:.0f}")
+
         return {
             "files_scanned": files_scanned,
             "files_skipped": files_skipped,
@@ -309,57 +317,60 @@ class Brain:
         self._index_dirty = False
 
     def recall(self, query: str, top_k: int = None, provider_filter: str = None) -> list[dict]:
-        if self._index_dirty:
-            self._build_index()
+        with timed("watty_recall") as t:
+            if self._index_dirty:
+                self._build_index()
 
-        if self._vectors is None or len(self._vectors) == 0:
-            return []
+            if self._vectors is None or len(self._vectors) == 0:
+                return []
 
-        query_vec = embed_text(query)
-        similarities = np.dot(self._vectors, query_vec)
+            query_vec = embed_text(query)
+            similarities = np.dot(self._vectors, query_vec)
 
-        conn = self._connect()
-        now_ts = time.time()
-        results = []
+            conn = self._connect()
+            now_ts = time.time()
+            results = []
 
-        for idx in np.argsort(similarities)[::-1][:max(top_k or TOP_K, TOP_K) * 2]:
-            chunk_id = self._vector_ids[idx]
-            sim = float(similarities[idx])
+            for idx in np.argsort(similarities)[::-1][:max(top_k or TOP_K, TOP_K) * 2]:
+                chunk_id = self._vector_ids[idx]
+                sim = float(similarities[idx])
 
-            if sim < RELEVANCE_THRESHOLD:
-                continue
+                if sim < RELEVANCE_THRESHOLD:
+                    continue
 
-            row = conn.execute(
-                "SELECT c.*, conv.provider as conv_provider, conv.metadata as conv_metadata "
-                "FROM chunks c JOIN conversations conv ON c.conversation_id = conv.id "
-                "WHERE c.id = ?",
-                (chunk_id,),
-            ).fetchone()
+                row = conn.execute(
+                    "SELECT c.*, conv.provider as conv_provider, conv.metadata as conv_metadata "
+                    "FROM chunks c JOIN conversations conv ON c.conversation_id = conv.id "
+                    "WHERE c.id = ?",
+                    (chunk_id,),
+                ).fetchone()
 
-            if not row:
-                continue
-            if provider_filter and row["provider"] != provider_filter:
-                continue
+                if not row:
+                    continue
+                if provider_filter and row["provider"] != provider_filter:
+                    continue
 
-            created_ts = datetime.fromisoformat(row["created_at"]).timestamp()
-            age_days = (now_ts - created_ts) / 86400
-            recency_boost = RECENCY_WEIGHT * max(0, 1 - age_days / 365)
-            final_score = sim + recency_boost
+                created_ts = datetime.fromisoformat(row["created_at"]).timestamp()
+                age_days = (now_ts - created_ts) / 86400
+                recency_boost = RECENCY_WEIGHT * max(0, 1 - age_days / 365)
+                final_score = sim + recency_boost
 
-            results.append({
-                "content": row["content"],
-                "score": round(final_score, 4),
-                "similarity": round(sim, 4),
-                "provider": row["provider"],
-                "role": row["role"],
-                "created_at": row["created_at"],
-                "source_type": row["source_type"],
-                "source_path": row["source_path"],
-            })
+                results.append({
+                    "content": row["content"],
+                    "score": round(final_score, 4),
+                    "similarity": round(sim, 4),
+                    "provider": row["provider"],
+                    "role": row["role"],
+                    "created_at": row["created_at"],
+                    "source_type": row["source_type"],
+                    "source_path": row["source_path"],
+                })
 
-        conn.close()
-        results.sort(key=lambda x: x["score"], reverse=True)
-        return results[: top_k or TOP_K]
+            conn.close()
+            results.sort(key=lambda x: x["score"], reverse=True)
+            final = results[: top_k or TOP_K]
+        log.info(f'watty_recall query="{query[:50]}" top_k={top_k or TOP_K} results={len(final)} duration_ms={t.elapsed_ms:.0f}')
+        return final
 
     # ── Clustering (Unsupervised Organization) ───────────
 
@@ -368,73 +379,75 @@ class Brain:
         Watty organizes his own mind. Groups related memories
         without being told how. Returns the knowledge graph.
         """
-        if self._index_dirty:
-            self._build_index()
+        with timed("watty_cluster") as _ct:
+            if self._index_dirty:
+                self._build_index()
 
-        if self._vectors is None or len(self._vectors) < CLUSTER_MIN_MEMORIES:
-            return []
+            if self._vectors is None or len(self._vectors) < CLUSTER_MIN_MEMORIES:
+                return []
 
-        # Simple agglomerative clustering — no sklearn dependency
-        n = len(self._vectors)
-        assigned = [False] * n
-        clusters = []
+            # Simple agglomerative clustering — no sklearn dependency
+            n = len(self._vectors)
+            assigned = [False] * n
+            clusters = []
 
-        for i in range(n):
-            if assigned[i]:
-                continue
-
-            cluster_indices = [i]
-            assigned[i] = True
-
-            for j in range(i + 1, n):
-                if assigned[j]:
+            for i in range(n):
+                if assigned[i]:
                     continue
-                sim = cosine_similarity(self._vectors[i], self._vectors[j])
-                if sim >= CLUSTER_SIMILARITY_THRESHOLD:
-                    cluster_indices.append(j)
-                    assigned[j] = True
 
-            if len(cluster_indices) >= 2:
-                # Get representative content for labeling
-                conn = self._connect()
-                chunk_ids = [self._vector_ids[idx] for idx in cluster_indices]
-                placeholders = ",".join("?" * len(chunk_ids))
-                rows = conn.execute(
-                    f"SELECT id, content, source_type FROM chunks WHERE id IN ({placeholders})",
-                    chunk_ids,
-                ).fetchall()
-                conn.close()
+                cluster_indices = [i]
+                assigned[i] = True
 
-                # Use first chunk as label seed (longest content = most representative)
-                contents = sorted(rows, key=lambda r: len(r["content"]), reverse=True)
-                label_text = contents[0]["content"][:100] if contents else "Unknown cluster"
+                for j in range(i + 1, n):
+                    if assigned[j]:
+                        continue
+                    sim = cosine_similarity(self._vectors[i], self._vectors[j])
+                    if sim >= CLUSTER_SIMILARITY_THRESHOLD:
+                        cluster_indices.append(j)
+                        assigned[j] = True
 
-                centroid = np.mean(self._vectors[cluster_indices], axis=0)
+                if len(cluster_indices) >= 2:
+                    # Get representative content for labeling
+                    conn = self._connect()
+                    chunk_ids = [self._vector_ids[idx] for idx in cluster_indices]
+                    placeholders = ",".join("?" * len(chunk_ids))
+                    rows = conn.execute(
+                        f"SELECT id, content, source_type FROM chunks WHERE id IN ({placeholders})",
+                        chunk_ids,
+                    ).fetchall()
+                    conn.close()
 
-                clusters.append({
-                    "label": label_text,
-                    "size": len(cluster_indices),
-                    "chunk_ids": chunk_ids,
-                    "sample_contents": [r["content"][:200] for r in contents[:3]],
-                    "sources": list(set(r["source_type"] for r in rows)),
-                })
+                    # Use first chunk as label seed (longest content = most representative)
+                    contents = sorted(rows, key=lambda r: len(r["content"]), reverse=True)
+                    label_text = contents[0]["content"][:100] if contents else "Unknown cluster"
 
-        # Store clusters
-        conn = self._connect()
-        now = datetime.now(timezone.utc).isoformat()
-        conn.execute("DELETE FROM clusters")
-        for c in clusters:
-            centroid_bytes = np.mean(
-                self._vectors[[self._vector_ids.index(cid) for cid in c["chunk_ids"] if cid in self._vector_ids]],
-                axis=0
-            ).tobytes() if c["chunk_ids"] else b""
-            conn.execute(
-                "INSERT INTO clusters (label, centroid, chunk_ids, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-                (c["label"], centroid_bytes, json.dumps(c["chunk_ids"]), now, now),
-            )
-        conn.commit()
-        conn.close()
+                    centroid = np.mean(self._vectors[cluster_indices], axis=0)
 
+                    clusters.append({
+                        "label": label_text,
+                        "size": len(cluster_indices),
+                        "chunk_ids": chunk_ids,
+                        "sample_contents": [r["content"][:200] for r in contents[:3]],
+                        "sources": list(set(r["source_type"] for r in rows)),
+                    })
+
+            # Store clusters
+            conn = self._connect()
+            now = datetime.now(timezone.utc).isoformat()
+            conn.execute("DELETE FROM clusters")
+            for c in clusters:
+                centroid_bytes = np.mean(
+                    self._vectors[[self._vector_ids.index(cid) for cid in c["chunk_ids"] if cid in self._vector_ids]],
+                    axis=0
+                ).tobytes() if c["chunk_ids"] else b""
+                conn.execute(
+                    "INSERT INTO clusters (label, centroid, chunk_ids, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+                    (c["label"], centroid_bytes, json.dumps(c["chunk_ids"]), now, now),
+                )
+            conn.commit()
+            conn.close()
+
+        log.info(f"watty_cluster clusters={len(clusters)} memories={n} duration_ms={_ct.elapsed_ms:.0f}")
         return clusters
 
     # ── Forget (User Data Control) ───────────────────────
@@ -459,8 +472,7 @@ class Brain:
             try:
                 from watty.backup import backup
                 path = backup()
-                import sys
-                print(f"[Watty] Auto-backup before large delete: {path}", file=sys.stderr, flush=True)
+                log.info(f"Auto-backup before large delete: {path}")
             except Exception:
                 pass
 

@@ -11,21 +11,17 @@ Usage:
 import asyncio
 import json
 import os
-import sys
 import uuid
 
 from watty.brain import Brain
 from watty.config import SERVER_NAME, SERVER_VERSION
 from watty.tools import TOOL_DEFS, call_tool
+from watty.log import log, setup
 
 PORT = int(os.environ.get("WATTY_HTTP_PORT", "8766"))
 HOST = os.environ.get("WATTY_HTTP_HOST", "localhost")
 
 brain = Brain()
-
-
-def log(msg):
-    print(msg, file=sys.stderr, flush=True)
 
 
 async def handle_sse(request):
@@ -117,17 +113,18 @@ def create_app():
 
 async def main():
     from aiohttp import web
-    log(f"[Watty] Starting HTTP/SSE server on {HOST}:{PORT}")
-    log(f"[Watty] Brain: {brain.db_path}")
+    setup()
+    log.info(f"Starting HTTP/SSE server on {HOST}:{PORT}")
+    log.info(f"Brain: {brain.db_path}")
     stats = brain.stats()
-    log(f"[Watty] {stats['total_memories']} memories | {stats['total_conversations']} conversations")
+    log.info(f"{stats['total_memories']} memories | {stats['total_conversations']} conversations")
     app = create_app()
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, HOST, PORT)
     await site.start()
-    log(f"[Watty] SSE endpoint: http://{HOST}:{PORT}/sse")
-    log(f"[Watty] {len(TOOL_DEFS)} tools ready over HTTP. Connect any MCP client.")
+    log.info(f"SSE endpoint: http://{HOST}:{PORT}/sse")
+    log.info(f"{len(TOOL_DEFS)} tools ready over HTTP. Connect any MCP client.")
     await asyncio.Event().wait()
 
 

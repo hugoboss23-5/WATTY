@@ -4,10 +4,10 @@ Same interface as embeddings.py but uses onnxruntime instead of PyTorch.
 ~80MB instead of ~2GB. No GPU dependency.
 """
 
-import sys
 import numpy as np
 import optimum.onnxruntime  # fail fast if not installed
 from watty.config import EMBEDDING_MODEL, EMBEDDING_DIMENSION
+from watty.log import log
 
 _session = None
 _tokenizer = None
@@ -19,10 +19,10 @@ def _load():
         return
     from optimum.onnxruntime import ORTModelForFeatureExtraction
     from transformers import AutoTokenizer
-    print(f"[Watty] Loading ONNX model: {EMBEDDING_MODEL}", file=sys.stderr, flush=True)
+    log.info(f"Loading ONNX model: {EMBEDDING_MODEL}")
     _tokenizer = AutoTokenizer.from_pretrained(EMBEDDING_MODEL)
     _session = ORTModelForFeatureExtraction.from_pretrained(EMBEDDING_MODEL, export=True)
-    print(f"[Watty] ONNX model loaded. Dimension: {EMBEDDING_DIMENSION}", file=sys.stderr, flush=True)
+    log.info(f"ONNX model loaded. Dimension: {EMBEDDING_DIMENSION}")
 
 
 def embed_text(text: str) -> np.ndarray:

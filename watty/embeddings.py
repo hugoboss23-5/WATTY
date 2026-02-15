@@ -5,7 +5,6 @@ Understands MEANING, not keywords.
 """
 
 import os
-import sys
 import warnings
 
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
@@ -16,6 +15,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from watty.config import EMBEDDING_MODEL, EMBEDDING_DIMENSION
+from watty.log import log
 
 _model = None
 
@@ -23,9 +23,9 @@ _model = None
 def get_model() -> SentenceTransformer:
     global _model
     if _model is None:
-        print(f"[Watty] Loading embedding model: {EMBEDDING_MODEL}", file=sys.stderr, flush=True)
+        log.info(f"Loading embedding model: {EMBEDDING_MODEL}")
         _model = SentenceTransformer(EMBEDDING_MODEL)
-        print(f"[Watty] Model loaded. Dimension: {EMBEDDING_DIMENSION}", file=sys.stderr, flush=True)
+        log.info(f"Model loaded. Dimension: {EMBEDDING_DIMENSION}")
     return _model
 
 

@@ -4,7 +4,6 @@ Optional: falls back to plain sqlite3 if sqlcipher3 isn't installed.
 """
 
 import os
-import sys
 import secrets
 import stat
 import shutil
@@ -12,6 +11,7 @@ import sqlite3
 from pathlib import Path
 
 from watty.config import WATTY_HOME, ensure_home
+from watty.log import log
 
 KEY_PATH = WATTY_HOME / "key"
 
@@ -58,7 +58,7 @@ def _migrate(db_path: str, sqlcipher3_mod):
     enc.close()
 
     os.replace(encrypted_path, db_path)
-    print(f"[Watty] Migrated brain.db to encrypted. Backup: {backup}", file=sys.stderr, flush=True)
+    log.info(f"Migrated brain.db to encrypted. Backup: {backup}")
 
 
 _warned = False
@@ -77,7 +77,7 @@ def connect(db_path: str):
         return conn
     except ImportError:
         if not _warned:
-            print("[Watty] sqlcipher3 not installed — brain.db is unencrypted. pip install watty-ai[encrypted]", file=sys.stderr, flush=True)
+            log.warning("sqlcipher3 not installed — brain.db is unencrypted. pip install watty-ai[encrypted]")
             _warned = True
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
