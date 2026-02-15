@@ -41,6 +41,7 @@ def test_tools_schema_complete():
     assert TOOL_NAMES == {
         "watty_recall", "watty_remember", "watty_scan", "watty_cluster",
         "watty_forget", "watty_surface", "watty_reflect", "watty_context", "watty_stats",
+        "watty_shell",
     }
 
 
@@ -59,6 +60,32 @@ def test_call_tool_remember_and_recall():
 def test_call_tool_unknown():
     result = call_tool(brain, "nonexistent_tool", {})
     assert result.get("isError") is True
+
+
+def test_call_tool_shell_echo():
+    result = call_tool(brain, "watty_shell", {"command": "echo hello"})
+    assert "text" in result
+    assert "hello" in result["text"]
+
+
+def test_call_tool_shell_empty():
+    result = call_tool(brain, "watty_shell", {"command": ""})
+    assert "No command" in result["text"]
+
+
+def test_call_tool_shell_timeout():
+    result = call_tool(brain, "watty_shell", {"command": "sleep 10", "timeout": 1})
+    assert "timed out" in result["text"]
+
+
+def test_call_tool_shell_cwd(tmp_path):
+    result = call_tool(brain, "watty_shell", {"command": "pwd", "cwd": str(tmp_path)})
+    assert str(tmp_path) in result["text"]
+
+
+def test_call_tool_shell_exit_code():
+    result = call_tool(brain, "watty_shell", {"command": "exit 42"})
+    assert "exit code 42" in result["text"]
 
 
 def test_stdio_http_same_tools():

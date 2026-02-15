@@ -103,7 +103,7 @@ Watty:  → Clusters your knowledge. Surfaces connections you missed.
 
 **Your AI doesn't announce that it's using Watty. It just _knows_ things.** The way a colleague remembers your preferences without being asked.
 
-## 9 Tools
+## 10 Tools
 
 | Tool | What it does |
 |------|-------------|
@@ -115,6 +115,7 @@ Watty:  → Clusters your knowledge. Surfaces connections you missed.
 | `watty_surface` | Watty tells you what you didn't know you needed |
 | `watty_reflect` | Map your entire mind — providers, topics, time range |
 | `watty_context` | Lightning-fast pre-check — does Watty know about this? |
+| `watty_shell` | Run any shell command — PowerShell on Windows, bash on Linux/macOS |
 | `watty_stats` | Quick brain health check |
 
 ## How it works

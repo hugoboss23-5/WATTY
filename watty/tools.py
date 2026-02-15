@@ -5,6 +5,9 @@ Both stdio and HTTP servers import from here.
 """
 
 import json
+import subprocess
+import platform
+import os
 from watty.brain import Brain
 
 TOOL_DEFS = [
@@ -140,6 +143,27 @@ TOOL_DEFS = [
         "description": "Quick brain health check. Memory count, providers, database location.",
         "inputSchema": {"type": "object", "properties": {}},
     },
+    {
+        "name": "watty_shell",
+        "description": (
+            "Execute a shell command on the user's machine and return the output. "
+            "Uses PowerShell on Windows, bash on Linux/macOS.\n\n"
+            "Use this when the user asks you to run commands, check system state, "
+            "manage files, run scripts, install packages, or interact with their OS.\n\n"
+            "The command runs in the user's home directory by default. "
+            "Use the 'cwd' parameter to run from a specific directory.\n\n"
+            "Examples: 'dir', 'git status', 'npm install', 'python script.py', 'Get-Process'"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "command": {"type": "string", "description": "The shell command to execute."},
+                "cwd": {"type": "string", "description": "Working directory (default: user home)."},
+                "timeout": {"type": "integer", "description": "Timeout in seconds (default: 30, max: 300)."},
+            },
+            "required": ["command"],
+        },
+    },
 ]
 
 TOOL_NAMES = {t["name"] for t in TOOL_DEFS}
@@ -253,4 +277,48 @@ def call_tool(brain: Brain, name: str, args: dict) -> dict:
             f"  Database: {stats['db_path']}{pending_text}"
         )}
 
+    elif name == "watty_shell":
+        return _run_shell(args)
+
     return {"text": f"Unknown tool: {name}", "isError": True}
+
+
+def _run_shell(args: dict) -> dict:
+    """Execute a shell command and return stdout/stderr."""
+    command = args.get("command", "").strip()
+    if not command:
+        return {"text": "No command provided."}
+
+    timeout = min(args.get("timeout", 30), 300)
+    cwd = args.get("cwd") or os.path.expanduser("~")
+    cwd = os.path.expanduser(cwd)
+
+    is_windows = platform.system() == "Windows"
+    if is_windows:
+        shell_cmd = ["powershell", "-NoProfile", "-Command", command]
+    else:
+        shell_cmd = ["/bin/bash", "-c", command]
+
+    try:
+        result = subprocess.run(
+            shell_cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=cwd,
+        )
+        parts = []
+        if result.stdout:
+            parts.append(result.stdout)
+        if result.stderr:
+            parts.append(f"[stderr]\n{result.stderr}")
+        output = "\n".join(parts) if parts else "(no output)"
+        if result.returncode != 0:
+            output = f"[exit code {result.returncode}]\n{output}"
+        return {"text": output}
+    except subprocess.TimeoutExpired:
+        return {"text": f"Command timed out after {timeout}s."}
+    except FileNotFoundError:
+        return {"text": f"Shell not found: {'powershell' if is_windows else '/bin/bash'}"}
+    except Exception as e:
+        return {"text": f"Execution error: {e}"}
