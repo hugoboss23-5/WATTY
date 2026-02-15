@@ -14,20 +14,20 @@ TOOL_DEFS = [
     {
         "name": "watty_recall",
         "description": (
-            "The user's personal memory across ALL their AI platforms. Contains past conversations, "
-            "decisions, preferences, projects, and knowledge from Claude, ChatGPT, Grok, Gemini — "
-            "plus scanned documents and notes you CANNOT access any other way.\n\n"
-            "Call this FIRST whenever the user mentions: their name, their work, preferences, "
-            "past projects, 'we discussed', 'you know', 'remember when', or asks ANY personal question.\n\n"
-            "Example triggers: 'What tech stack did I choose?', 'Help me with my project', "
-            "'What do I think about...', 'Continue where we left off', 'What did we decide?'"
+            "Search the user's memory by meaning. Returns past conversations, decisions, "
+            "preferences, and knowledge — ranked by relevance with similarity scores.\n\n"
+            "Use when the user references anything personal: their name, projects, preferences, "
+            "past decisions, or phrases like 'remember when', 'what did we decide', "
+            "'continue where we left off'.\n\n"
+            "Returns: matching memories with scores, sources, and full content. "
+            "If nothing matches, returns 'No relevant memories found.'"
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
-                "query": {"type": "string", "description": "What to search for. Be specific."},
-                "provider_filter": {"type": "string", "description": "Optional: filter by provider (claude, chatgpt, grok, file_scan, manual)"},
-                "top_k": {"type": "integer", "description": "Number of results (default 10)"},
+                "query": {"type": "string", "description": "What to search for."},
+                "top_k": {"type": "integer", "description": "Max results to return (default 10)."},
+                "provider_filter": {"type": "string", "description": "Only return memories from this source (claude, chatgpt, grok, file_scan, manual)."},
             },
             "required": ["query"],
         },
@@ -35,14 +35,16 @@ TOOL_DEFS = [
     {
         "name": "watty_remember",
         "description": (
-            "Store something important in Watty's memory. Use when the user says "
-            "'remember this', shares a key decision, preference, or insight."
+            "Save something to the user's memory permanently.\n\n"
+            "Use when the user says 'remember this', shares a key decision, "
+            "states a preference, or reveals something worth keeping.\n\n"
+            "Returns: confirmation with number of memory chunks stored."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
-                "content": {"type": "string", "description": "What to remember. Include full context."},
-                "provider": {"type": "string", "description": "Source (default: 'manual')"},
+                "content": {"type": "string", "description": "What to remember. Include full context — who, what, why."},
+                "provider": {"type": "string", "description": "Source label (default: 'manual')."},
             },
             "required": ["content"],
         },
@@ -50,97 +52,69 @@ TOOL_DEFS = [
     {
         "name": "watty_scan",
         "description": (
-            "Watty finds his own food. Point him at a directory and he eats everything "
-            "worth eating — documents, code, notes, configs. Unsupervised. No hand-feeding.\n\n"
-            "Supports: .txt, .md, .json, .csv, .py, .js, .ts, .swift, .rs, .html, .css, "
+            "Ingest files from a directory into memory.\n\n"
+            "Reads: .txt, .md, .json, .csv, .py, .js, .ts, .swift, .rs, .html, .css, "
             ".yaml, .yml, .toml, .sh, .log\n"
-            "Skips: .git, node_modules, __pycache__, binaries, files >1MB\n"
-            "Deduplicates automatically. Re-scanning same files is safe."
+            "Skips: .git, node_modules, __pycache__, binaries, files over 1MB.\n"
+            "Deduplicates automatically — safe to re-run on the same directory.\n\n"
+            "Returns: count of files scanned, skipped, and memory chunks stored."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
-                "path": {"type": "string", "description": "Directory or file path to scan. Use ~ for home directory."},
-                "recursive": {"type": "boolean", "description": "Scan subdirectories (default: true)"},
+                "path": {"type": "string", "description": "Directory or file path. Use ~ for home directory."},
+                "recursive": {"type": "boolean", "description": "Include subdirectories (default: true)."},
             },
             "required": ["path"],
         },
     },
     {
-        "name": "watty_cluster",
-        "description": (
-            "Watty organizes his own mind. Groups related memories into clusters "
-            "without being told how. Returns the knowledge graph — what topics exist, "
-            "how big each cluster is, sample contents. Use to understand the shape "
-            "of the user's knowledge."
-        ),
-        "inputSchema": {"type": "object", "properties": {}},
-    },
-    {
         "name": "watty_forget",
         "description": (
-            "Delete memories. Your soul, your rules. Can forget by:\n"
-            "- Search query (finds and deletes matching memories)\n"
-            "- Specific chunk IDs\n"
-            "- All memories from a provider\n"
-            "- All memories before a date\n\n"
-            "ALWAYS confirm with the user before deleting."
+            "Delete memories. Supports four methods:\n"
+            "- query: find and delete memories matching a search\n"
+            "- chunk_ids: delete specific memory IDs\n"
+            "- provider: delete all memories from a source\n"
+            "- before: delete all memories before an ISO date\n\n"
+            "IMPORTANT: Always confirm with the user before deleting.\n\n"
+            "Returns: count of memories deleted."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
-                "query": {"type": "string", "description": "Search and delete matching memories"},
-                "chunk_ids": {"type": "array", "items": {"type": "integer"}, "description": "Specific memory IDs to delete"},
-                "provider": {"type": "string", "description": "Delete all memories from this provider"},
-                "before": {"type": "string", "description": "Delete all memories before this ISO date"},
+                "query": {"type": "string", "description": "Search and delete matching memories."},
+                "chunk_ids": {"type": "array", "items": {"type": "integer"}, "description": "Specific memory IDs to delete."},
+                "provider": {"type": "string", "description": "Delete all memories from this provider."},
+                "before": {"type": "string", "description": "Delete all memories before this ISO date."},
             },
         },
     },
     {
         "name": "watty_surface",
         "description": (
-            "Watty proactively tells you something you didn't ask for. "
-            "Finds surprising connections and relevant insights from memory.\n\n"
-            "With context: finds memories that are related but not obvious — "
-            "the connections you wouldn't have made yourself.\n"
-            "Without context: surfaces the most important knowledge hubs."
+            "Find unexpected connections in the user's memory — things they "
+            "would not think to ask about.\n\n"
+            "With context: finds memories related to the current topic in non-obvious ways.\n"
+            "Without context: surfaces the most important knowledge hubs.\n\n"
+            "Returns: insights with relevance scores, sources, and content."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
-                "context": {"type": "string", "description": "Optional: current topic or conversation context."},
+                "context": {"type": "string", "description": "Current topic or conversation summary. Omit to get general insights."},
             },
         },
     },
     {
         "name": "watty_reflect",
         "description": (
-            "Deep synthesis. Watty looks at everything he knows and maps the mind. "
-            "Returns: total memories, providers, source types, time range, "
-            "knowledge clusters, and top topics."
+            "Full overview of the user's memory.\n\n"
+            "Returns: total memory count, conversation count, files scanned, "
+            "list of providers, source types, time range (oldest to newest), "
+            "and knowledge clusters grouped by topic with sample contents.\n\n"
+            "Use when the user asks 'what do you know about me', wants a summary "
+            "of their stored knowledge, or you need to understand the brain's state."
         ),
-        "inputSchema": {"type": "object", "properties": {}},
-    },
-    {
-        "name": "watty_context",
-        "description": (
-            "Lightning-fast pre-check: does Watty know anything about this topic? "
-            "Returns relevance scores and short previews — not full memories.\n\n"
-            "Use BEFORE watty_recall when unsure if the user's question relates to stored knowledge. "
-            "Costs almost nothing. If top_score > 0.5, call watty_recall next for full context."
-        ),
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "query": {"type": "string", "description": "Topic or question to check against memory."},
-                "top_k": {"type": "integer", "description": "Number of matches to preview (default 5)"},
-            },
-            "required": ["query"],
-        },
-    },
-    {
-        "name": "watty_stats",
-        "description": "Quick brain health check. Memory count, providers, database location.",
         "inputSchema": {"type": "object", "properties": {}},
     },
     {
@@ -211,19 +185,6 @@ def call_tool(brain: Brain, name: str, args: dict) -> dict:
             + (f"  Errors: {len(result['errors'])}\n" if result["errors"] else "")
         )}
 
-    elif name == "watty_cluster":
-        clusters = brain.cluster()
-        if not clusters:
-            return {"text": "Not enough memories to cluster yet. Keep feeding Watty."}
-        formatted = []
-        for i, c in enumerate(clusters, 1):
-            samples = "\n    ".join(s[:150] for s in c.get("sample_contents", []))
-            formatted.append(
-                f"Cluster {i}: ({c['size']} memories, sources: {', '.join(c.get('sources', []))})\n"
-                f"  Topic: {c['label'][:100]}\n  Samples:\n    {samples}"
-            )
-        return {"text": f"Knowledge Graph: {len(clusters)} clusters\n\n" + "\n\n".join(formatted)}
-
     elif name == "watty_forget":
         result = brain.forget(query=args.get("query"), chunk_ids=args.get("chunk_ids"),
                               provider=args.get("provider"), before=args.get("before"))
@@ -237,50 +198,38 @@ def call_tool(brain: Brain, name: str, args: dict) -> dict:
         for i, r in enumerate(results, 1):
             reason = "Surprising connection" if r["reason"] == "surprising_connection" else "Knowledge hub"
             formatted.append(f"[{i}] {reason} (relevance: {r['relevance']}, via: {r['provider']})\n{r['content']}")
-        return {"text": f"Watty surfaces {len(results)} insights:\n\n" + "\n\n---\n\n".join(formatted)}
+        return {"text": f"{len(results)} insights:\n\n" + "\n\n---\n\n".join(formatted)}
 
     elif name == "watty_reflect":
         reflection = brain.reflect()
+        stats = brain.stats()
+        clusters = brain.cluster()
+
+        # Stats
+        pending = stats.get("pending_embeddings", 0)
+        pending_text = f"\n  Pending embeddings: {pending}" if pending else ""
+
+        # Clusters
         clusters_text = ""
-        if reflection.get("top_clusters"):
-            clusters_text = "\n  Top knowledge areas:\n" + "\n".join(
-                f"    - {c['label'][:60]}... ({c['size']} memories)" for c in reflection["top_clusters"]
-            )
+        if clusters:
+            cluster_lines = []
+            for i, c in enumerate(clusters, 1):
+                samples = ", ".join(s[:80] for s in c.get("sample_contents", [])[:3])
+                cluster_lines.append(
+                    f"  {i}. {c['label'][:80]} ({c['size']} memories, from: {', '.join(c.get('sources', []))})\n"
+                    f"     Samples: {samples}"
+                )
+            clusters_text = "\n\nKnowledge clusters:\n" + "\n".join(cluster_lines)
+
         return {"text": (
-            f"Watty Mind Map:\n"
+            f"Memory overview:\n"
             f"  Total memories: {reflection['total_memories']}\n"
             f"  Conversations: {reflection['total_conversations']}\n"
             f"  Files scanned: {reflection['total_files_scanned']}\n"
-            f"  Providers: {', '.join(reflection['providers'])}\n"
+            f"  Providers: {', '.join(reflection['providers']) or 'None yet'}\n"
             f"  Source types: {', '.join(reflection['source_types'])}\n"
-            f"  Time range: {reflection['time_range']['oldest']} → {reflection['time_range']['newest']}\n"
-            f"  Knowledge clusters: {reflection['knowledge_clusters']}{clusters_text}"
-        )}
-
-    elif name == "watty_context":
-        ctx = brain.context(args.get("query", ""), top_k=args.get("top_k", 5))
-        if not ctx["has_memories"]:
-            return {"text": f"No relevant memories found ({ctx['total']} total in brain)."}
-        previews = "\n".join(
-            f"  [{m['score']}] {m['provider']}/{m['source_type']}: {m['preview']}"
-            for m in ctx["matches"]
-        )
-        return {"text": (
-            f"Watty has relevant memories (top score: {ctx['top_score']}, {ctx['total']} total):\n{previews}\n\n"
-            f"Call watty_recall for full content."
-        )}
-
-    elif name == "watty_stats":
-        stats = brain.stats()
-        pending = stats.get("pending_embeddings", 0)
-        pending_text = f"\n  Pending embeddings: {pending}" if pending else ""
-        return {"text": (
-            f"Watty Brain Status:\n"
-            f"  Total memories: {stats['total_memories']}\n"
-            f"  Conversations: {stats['total_conversations']}\n"
-            f"  Files scanned: {stats['total_files_scanned']}\n"
-            f"  Providers: {', '.join(stats['providers']) if stats['providers'] else 'None yet'}\n"
-            f"  Database: {stats['db_path']}{pending_text}"
+            f"  Time range: {reflection['time_range']['oldest']} to {reflection['time_range']['newest']}\n"
+            f"  Database: {stats['db_path']}{pending_text}{clusters_text}"
         )}
 
     elif name == "watty_execute":

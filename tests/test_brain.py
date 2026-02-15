@@ -350,19 +350,18 @@ def test_context_returns_previews():
         assert "score" in m
 
 
-def test_context_tool_registered():
-    """watty_context appears in the tool registry."""
+def test_recall_tool_registered():
+    """watty_recall appears in the tool registry."""
     from watty.tools import TOOL_NAMES
-    assert "watty_context" in TOOL_NAMES
     assert "watty_recall" in TOOL_NAMES
 
 
-def test_context_tool_handler():
-    """watty_context handler returns formatted output."""
+def test_recall_tool_handler():
+    """watty_recall handler returns formatted output with scores."""
     from watty.tools import call_tool
     brain, _ = fresh_brain()
     brain.store_memory("Python machine learning data science sklearn")
-    result = call_tool(brain, "watty_context", {"query": "Python machine learning data science sklearn"})
+    result = call_tool(brain, "watty_recall", {"query": "Python machine learning data science sklearn"})
     assert "text" in result
-    # Should mention either "relevant memories" or "No relevant"
-    assert "relevant" in result["text"].lower() or "no relevant" in result["text"].lower()
+    # Should mention either found memories or "No relevant"
+    assert "memories" in result["text"].lower() or "no relevant" in result["text"].lower()

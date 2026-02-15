@@ -39,16 +39,18 @@ from watty.brain import Brain  # noqa: E402
 
 def test_tools_schema_complete():
     assert TOOL_NAMES == {
-        "watty_recall", "watty_remember", "watty_scan", "watty_cluster",
-        "watty_forget", "watty_surface", "watty_reflect", "watty_context", "watty_stats",
+        "watty_recall", "watty_remember", "watty_scan",
+        "watty_forget", "watty_surface", "watty_reflect",
         "watty_execute",
     }
 
 
-def test_call_tool_stats():
-    result = call_tool(brain, "watty_stats", {})
+def test_call_tool_stats_via_reflect():
+    """watty_reflect now includes stats, clusters, and overview."""
+    result = call_tool(brain, "watty_reflect", {})
     assert "text" in result
     assert "Total memories" in result["text"]
+    assert "Database:" in result["text"]
 
 
 def test_call_tool_remember_and_recall():
@@ -73,13 +75,6 @@ def test_call_tool_execute_empty():
     assert "No command" in result["text"]
 
 
-def test_call_tool_execute_timeout():
-    result = call_tool(brain, "watty_execute", {"command": "sleep 200"})
-    # Will timeout at 120s — but we can't wait that long in tests.
-    # Instead just verify the tool accepts the command without crashing.
-    assert "text" in result
-
-
 def test_call_tool_execute_cwd(tmp_path):
     result = call_tool(brain, "watty_execute", {"command": "pwd", "cwd": str(tmp_path)})
     assert str(tmp_path) in result["text"]
@@ -94,6 +89,15 @@ def test_stdio_http_same_tools():
     """stdio and HTTP expose identical tool names."""
     http_names = {t["name"] for t in TOOL_DEFS}
     assert http_names == TOOL_NAMES
+
+
+def test_every_tool_has_description_and_schema():
+    """Every tool definition must have name, description, and inputSchema."""
+    for t in TOOL_DEFS:
+        assert "name" in t, f"Tool missing name: {t}"
+        assert "description" in t, f"{t['name']} missing description"
+        assert "inputSchema" in t, f"{t['name']} missing inputSchema"
+        assert len(t["description"]) > 20, f"{t['name']} description too short"
 
 
 # ── Integration test with aiohttp test client ───────────
@@ -132,16 +136,15 @@ def test_http_sse_and_messages():
             )
             assert list_resp.status == 200
 
-            # Send tools/call for stats
+            # Send tools/call for reflect (formerly stats)
             call_resp = await client.post(
                 f"/messages?session_id={session_id}",
                 json={"jsonrpc": "2.0", "id": 3, "method": "tools/call",
-                      "params": {"name": "watty_stats", "arguments": {}}},
+                      "params": {"name": "watty_reflect", "arguments": {}}},
             )
             assert call_resp.status == 200
 
             # Read SSE events (they should contain our responses)
-            # The responses are sent via SSE, so read them
             await sse_resp.content.readline()  # empty line after endpoint event
             # Read initialize response
             event_line = await asyncio.wait_for(sse_resp.content.readline(), timeout=2)

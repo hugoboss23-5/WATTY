@@ -103,20 +103,17 @@ Watty:  → Clusters your knowledge. Surfaces connections you missed.
 
 **Your AI doesn't announce that it's using Watty. It just _knows_ things.** The way a colleague remembers your preferences without being asked.
 
-## 10 Tools
+## 7 Tools
 
 | Tool | What it does |
 |------|-------------|
-| `watty_recall` | Search memory by **meaning**, not keywords |
-| `watty_remember` | Store something important |
-| `watty_scan` | Point at a folder — Watty eats everything worth eating |
-| `watty_cluster` | Watty organizes his own mind into a knowledge graph |
-| `watty_forget` | Delete anything. Your soul, your rules |
-| `watty_surface` | Watty tells you what you didn't know you needed |
-| `watty_reflect` | Map your entire mind — providers, topics, time range |
-| `watty_context` | Lightning-fast pre-check — does Watty know about this? |
+| `watty_recall` | Search memory by meaning — returns matches ranked by relevance |
+| `watty_remember` | Save something to memory permanently |
+| `watty_scan` | Ingest files from a directory into memory |
+| `watty_forget` | Delete memories by query, ID, provider, or date |
+| `watty_surface` | Find unexpected connections in stored knowledge |
+| `watty_reflect` | Full brain overview — stats, providers, time range, knowledge clusters |
 | `watty_execute` | Run a command, get the output back as text |
-| `watty_stats` | Quick brain health check |
 
 ## How it works
 

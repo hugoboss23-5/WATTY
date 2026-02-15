@@ -16,16 +16,15 @@ Watty runs as a local MCP server. When an AI platform queries Watty before respo
 - **Chunking:** 1500 chars with 200 char overlap, smart boundary detection
 - **Deduplication:** SHA-256 content hashing prevents duplicates
 
-## 8 MCP Tools
+## 7 MCP Tools
 
-- `watty_recall` — Semantic search across all memory (by meaning, not keywords)
-- `watty_remember` — Store important information with full context
-- `watty_scan` — Point at a directory, Watty ingests all supported files automatically
-- `watty_cluster` — Self-organizing knowledge graph generation
-- `watty_forget` — Delete by search query, chunk IDs, provider, or date
-- `watty_surface` — Proactive intelligence: finds surprising connections in memory
-- `watty_reflect` — Deep synthesis: maps total memories, providers, time range, clusters
-- `watty_stats` — Quick health check: memory count, providers, database location
+- `watty_recall` — Search memory by meaning. Returns matches ranked by relevance with scores
+- `watty_remember` — Save something to memory permanently
+- `watty_scan` — Ingest files from a directory into memory
+- `watty_forget` — Delete memories by query, ID, provider, or date
+- `watty_surface` — Find unexpected connections in stored knowledge
+- `watty_reflect` — Full brain overview: stats, providers, time range, knowledge clusters
+- `watty_execute` — Run a command on the user's machine, get the output back as text
 
 ## Supported File Types
 
