@@ -27,7 +27,10 @@ async def list_tools() -> list[Tool]:
 @server.call_tool()
 async def handle_tool(name: str, arguments: dict) -> list[TextContent]:
     try:
-        result = call_tool(brain, name, arguments)
+        # Run in thread pool so blocking calls (like subprocess.run in watty_shell)
+        # don't freeze the event loop — which would prevent the MCP response from
+        # being sent back before the client times out.
+        result = await asyncio.to_thread(call_tool, brain, name, arguments)
         return [TextContent(type="text", text=result["text"])]
     except Exception as e:
         log.error(f"Error in {name}: {e}")

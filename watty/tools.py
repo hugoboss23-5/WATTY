@@ -168,7 +168,7 @@ TOOL_DEFS = [
                     "description": "Shell to use (default: auto). 'powershell' for PowerShell, 'bash' for bash, 'cmd' for cmd.exe.",
                 },
                 "cwd": {"type": "string", "description": "Working directory (default: user home)."},
-                "timeout": {"type": "integer", "description": "Timeout in seconds (default: 30, max: 300)."},
+                "timeout": {"type": "integer", "description": "Timeout in seconds (default: 120, max: 300)."},
             },
             "required": ["command"],
         },
@@ -298,7 +298,7 @@ def _run_shell(args: dict) -> dict:
     if not command:
         return {"text": "No command provided."}
 
-    timeout = min(args.get("timeout", 30), 300)
+    timeout = min(args.get("timeout", 120), 300)
     cwd = args.get("cwd") or os.path.expanduser("~")
     cwd = os.path.expanduser(cwd)
     shell = args.get("shell", "auto").lower()

@@ -73,7 +73,11 @@ async def handle_messages(request):
         result = {"tools": TOOL_DEFS}
     elif method == "tools/call":
         try:
-            raw = call_tool(brain, params.get("name", ""), params.get("arguments", {}))
+            # Run in thread pool so blocking calls (like subprocess.run in watty_shell)
+            # don't freeze the event loop and prevent the response from being sent back.
+            raw = await asyncio.to_thread(
+                call_tool, brain, params.get("name", ""), params.get("arguments", {})
+            )
             result = {"content": [{"type": "text", "text": raw["text"]}]}
             if raw.get("isError"):
                 result["isError"] = True
