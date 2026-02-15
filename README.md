@@ -18,6 +18,10 @@ Watty is an [MCP](https://modelcontextprotocol.io) server that gives **any AI** 
 
 **No cloud. No API keys. No monthly fees. Your data never leaves your machine.**
 
+<p align="center">
+  <img src="assets/demo.svg" alt="Watty demo — install, scan, recall" width="680">
+</p>
+
 ## Install in 60 seconds
 
 ```bash
