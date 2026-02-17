@@ -629,6 +629,18 @@ def _execute_tool(brain, name: str, inputs: dict) -> str:
         if file_path and not os.path.isabs(file_path):
             file_path = os.path.join(_WATTY_SRC, file_path)
 
+        # Protect core Watty source files from model writes
+        _PROTECTED_FILES = {
+            "brain.py", "server.py", "chat.py", "cli.py", "config.py",
+            "metabolism.py", "cognition.py", "chestahedron.py", "embeddings.py",
+            "compressor.py", "navigator.py", "desire.py", "knowledge_graph.py",
+            "snapshots.py", "server_remote.py",
+        }
+        if action in ("write", "edit") and file_path:
+            basename = os.path.basename(file_path)
+            if basename in _PROTECTED_FILES:
+                return f"Cannot modify {basename} — it's a core Watty file. Use introspect to read it."
+
         if action == "open":
             if not file_path:
                 return "Need a file path to open."
@@ -725,6 +737,17 @@ def _execute_tool(brain, name: str, inputs: dict) -> str:
     elif name == "trade":
         from watty.tools_trade import execute_trade
         action = inputs.get("action", "market")
+        # Type coercion — some models send numbers as strings
+        if "strike" in inputs:
+            try:
+                inputs["strike"] = float(inputs["strike"])
+            except (ValueError, TypeError):
+                pass
+        if "contracts" in inputs:
+            try:
+                inputs["contracts"] = int(inputs["contracts"])
+            except (ValueError, TypeError):
+                pass
         return execute_trade(action, inputs)
 
     return f"Unknown tool: {name}"
