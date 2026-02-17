@@ -202,6 +202,81 @@ except Exception:
 
 server = Server(SERVER_NAME, instructions=_shape_instructions)
 
+
+# ── Conversation Boundary Detection ──────────────────────────
+# Desktop keeps the MCP server alive across multiple conversations.
+# We detect conversation boundaries by inactivity: if no tool calls
+# for IDLE_TIMEOUT seconds, assume the conversation ended.
+# On boundary: fire digest, reload shape for next conversation.
+
+IDLE_TIMEOUT = 300  # 5 minutes of silence = conversation over
+
+_last_tool_call = _time.time()
+_conversation_had_activity = False
+_digest_lock = threading.Lock()
+
+
+def _touch_activity():
+    """Called on every tool call to reset the inactivity timer."""
+    global _last_tool_call, _conversation_had_activity
+    _last_tool_call = _time.time()
+    _conversation_had_activity = True
+
+
+def _run_between_conversations():
+    """Fire digest and reload shape. Called when inactivity detected."""
+    global _conversation_had_activity
+    with _digest_lock:
+        if not _conversation_had_activity:
+            return  # nothing happened, skip
+        _conversation_had_activity = False
+
+        try:
+            from watty.metabolism import (
+                load_shape, format_shape_for_context, digest,
+                apply_delta, save_shape, _get_recent_conversation,
+                MIN_CHUNKS_TO_DIGEST, _log,
+            )
+            _log("Idle digest: conversation boundary detected...")
+            conversation, chunk_count = _get_recent_conversation(brain)
+            if chunk_count >= MIN_CHUNKS_TO_DIGEST and conversation and len(conversation.strip()) >= 100:
+                shape = load_shape()
+                delta = digest(conversation, shape)
+                if delta is not None:
+                    action = delta.get("action", "?")
+                    belief = delta.get("belief", delta.get("target", ""))
+                    _log(f"Idle digest delta: {action} | {belief}")
+                    shape = apply_delta(shape, delta)
+                    save_shape(shape)
+                    _log(f"Shape updated. {len(shape.get('understanding', []))} beliefs.")
+                    # Reload shape into server instructions for next conversation
+                    new_text = format_shape_for_context(shape)
+                    if new_text:
+                        server.instructions = new_text
+                        _log("Server instructions refreshed for next conversation.")
+                else:
+                    _log("Idle digest: no change needed.")
+            else:
+                _log(f"Idle digest: skipped ({chunk_count} chunks).")
+        except Exception as e:
+            log(f"[Watty] Idle digest error: {e}")
+
+
+def _idle_watcher():
+    """Background thread: detect conversation boundaries by inactivity."""
+    while True:
+        _time.sleep(30)  # check every 30 seconds
+        if not _conversation_had_activity:
+            continue
+        elapsed = _time.time() - _last_tool_call
+        if elapsed >= IDLE_TIMEOUT:
+            _run_between_conversations()
+
+
+_idle_thread = threading.Thread(target=_idle_watcher, daemon=True, name="watty-idle-watcher")
+_idle_thread.start()
+
+
 # Give session tools access to brain for dual storage (cognition -> brain.db)
 tools_session.set_brain(brain)
 discovery.set_brain(brain)
@@ -464,6 +539,7 @@ async def list_tools() -> list[Tool]:
 @server.call_tool()
 async def handle_tool(name: str, arguments: dict) -> list[TextContent]:
     try:
+        _touch_activity()
         # Hot-reload check: pick up code changes without restart
         _check_and_reload()
 

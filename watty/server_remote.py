@@ -84,19 +84,88 @@ tools_graph.set_brain(brain)
 tools_a2a.set_brain(brain)
 
 
+# ── Conversation Boundary Detection (same as server.py) ────
+# HTTP server is long-running. Detect conversation boundaries
+# by inactivity: no tool calls for IDLE_TIMEOUT = digest + reload.
+
+import time as _time
+
+IDLE_TIMEOUT = 300  # 5 minutes
+
+_last_tool_call = _time.time()
+_conversation_had_activity = False
+_digest_lock = threading.Lock()
+
+
+def _touch_activity():
+    global _last_tool_call, _conversation_had_activity
+    _last_tool_call = _time.time()
+    _conversation_had_activity = True
+
+
+_latest_shape_text = None  # refreshed after each digest
+
+
+def _run_between_conversations():
+    global _conversation_had_activity, _latest_shape_text
+    with _digest_lock:
+        if not _conversation_had_activity:
+            return
+        _conversation_had_activity = False
+        try:
+            from watty.metabolism import (
+                load_shape, format_shape_for_context, digest,
+                apply_delta, save_shape, _get_recent_conversation,
+                MIN_CHUNKS_TO_DIGEST, _log,
+            )
+            _log("Remote idle digest: conversation boundary detected...")
+            conversation, chunk_count = _get_recent_conversation(brain)
+            if chunk_count >= MIN_CHUNKS_TO_DIGEST and conversation and len(conversation.strip()) >= 100:
+                shape = load_shape()
+                delta = digest(conversation, shape)
+                if delta is not None:
+                    _log(f"Remote idle delta: {delta.get('action')} | {delta.get('belief', delta.get('target', ''))}")
+                    shape = apply_delta(shape, delta)
+                    save_shape(shape)
+                    _log(f"Shape updated. {len(shape.get('understanding', []))} beliefs.")
+                    _latest_shape_text = format_shape_for_context(shape)
+                else:
+                    _log("Remote idle digest: no change needed.")
+            else:
+                _log(f"Remote idle digest: skipped ({chunk_count} chunks).")
+        except Exception as e:
+            log(f"[Watty Remote] Idle digest error: {e}")
+
+
+def _idle_watcher():
+    while True:
+        _time.sleep(30)
+        if not _conversation_had_activity:
+            continue
+        elapsed = _time.time() - _last_tool_call
+        if elapsed >= IDLE_TIMEOUT:
+            _run_between_conversations()
+
+
+_idle_thread = threading.Thread(target=_idle_watcher, daemon=True, name="watty-remote-idle")
+_idle_thread.start()
+
+
 # ── Build MCP server (identical to server.py) ──────────────
 def _build_mcp_server() -> Server:
     """Build a fresh MCP Server instance with all tools registered."""
     # Load shape for server instructions (automatic context injection)
-    _shape_instructions = None
-    try:
-        from watty.metabolism import load_shape, format_shape_for_context
-        _shape = load_shape()
-        _shape_text = format_shape_for_context(_shape)
-        if _shape_text:
-            _shape_instructions = _shape_text
-    except Exception:
-        pass
+    # Prefer refreshed shape from idle digest, fall back to disk
+    _shape_instructions = _latest_shape_text
+    if not _shape_instructions:
+        try:
+            from watty.metabolism import load_shape, format_shape_for_context
+            _shape = load_shape()
+            _shape_text = format_shape_for_context(_shape)
+            if _shape_text:
+                _shape_instructions = _shape_text
+        except Exception:
+            pass
 
     srv = Server(SERVER_NAME, instructions=_shape_instructions)
 
@@ -168,6 +237,7 @@ def _build_mcp_server() -> Server:
     @srv.call_tool()
     async def handle_tool(name: str, arguments: dict) -> list[TextContent]:
         try:
+            _touch_activity()
             if name in EXTRA_HANDLERS:
                 handler = EXTRA_HANDLERS[name]
                 import inspect
