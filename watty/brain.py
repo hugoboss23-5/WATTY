@@ -737,7 +737,7 @@ class Brain:
 
                 chunks_stored += 1
 
-        self._save_chestahedron_state()
+        self._save_chestahedron_state(conn)
         conn.commit()
         conn.close()
         self._index_dirty = True
@@ -868,7 +868,7 @@ class Brain:
             except Exception as e:
                 errors.append(f"{filepath}: {str(e)}")
 
-        self._save_chestahedron_state()
+        self._save_chestahedron_state(conn)
         conn.commit()
         conn.close()
         self._index_dirty = True
@@ -1568,7 +1568,7 @@ class Brain:
             migrated += 1
 
         if migrated > 0:
-            self._save_chestahedron_state()
+            self._save_chestahedron_state(conn)
             self._index_dirty = True
 
         # ── Phase 9: Knowledge Graph maintenance ──
@@ -1629,20 +1629,31 @@ class Brain:
 
     # ── Chestahedron State Persistence ────────────────────
 
-    def _save_chestahedron_state(self):
-        """Persist chestahedron + hippocampus state to DB."""
-        state = {
-            'chestahedron': self.chestahedron.save_state(),
-            'hippocampus': self.chesta_hippocampus.save_state(),
-        }
-        now = datetime.now(timezone.utc).isoformat()
-        conn = self._connect()
-        conn.execute(
-            "INSERT OR REPLACE INTO chestahedron_state (id, state_json, updated_at) VALUES (1, ?, ?)",
-            (json.dumps(state), now)
-        )
-        conn.commit()
-        conn.close()
+    def _save_chestahedron_state(self, conn=None):
+        """Persist chestahedron + hippocampus state to DB. Non-fatal — geometric state
+        is supplementary and can be saved on the next successful write.
+        Pass an existing connection to avoid opening a second one during a transaction."""
+        try:
+            state = {
+                'chestahedron': self.chestahedron.save_state(),
+                'hippocampus': self.chesta_hippocampus.save_state(),
+            }
+            now = datetime.now(timezone.utc).isoformat()
+            own_conn = conn is None
+            if own_conn:
+                conn = self._connect()
+            try:
+                conn.execute(
+                    "INSERT OR REPLACE INTO chestahedron_state (id, state_json, updated_at) VALUES (1, ?, ?)",
+                    (json.dumps(state), now)
+                )
+                if own_conn:
+                    conn.commit()
+            finally:
+                if own_conn:
+                    conn.close()
+        except Exception:
+            pass  # DB locked or other issue — geometric state will persist next time
 
     def _load_chestahedron_state(self):
         """Restore chestahedron + hippocampus state from DB. Fails silently if no prior state."""

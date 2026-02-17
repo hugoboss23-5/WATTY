@@ -14,10 +14,17 @@ Hugo & Watty - February 2026
 """
 
 import json
+import logging
 import os
 import signal
 import sys
+import warnings
 from datetime import datetime, timezone
+
+# Suppress noisy model loading warnings
+warnings.filterwarnings("ignore", message=".*unauthenticated.*")
+warnings.filterwarnings("ignore", message=".*UNEXPECTED.*")
+logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
 
 # ── Config ────────────────────────────────────────────────
 
@@ -182,7 +189,18 @@ def run(args=None):
     from watty.brain import Brain
     from watty.metabolism import load_shape, format_shape_for_context
 
-    brain = Brain()
+    # Suppress model loading noise (LOAD REPORT tables, HF warnings)
+    _real_stderr = sys.stderr
+    sys.stderr = open(os.devnull, "w")
+    try:
+        brain = Brain()
+        # Preload embedding model silently so first message isn't noisy
+        from watty.embeddings import embed_text
+        embed_text("warmup")
+    finally:
+        sys.stderr.close()
+        sys.stderr = _real_stderr
+
     shape = load_shape()
     shape_text = format_shape_for_context(shape)
     system = _build_system(shape_text)
@@ -237,17 +255,40 @@ def run(args=None):
         # Extract and print text
         text_parts = []
         for block in response.content:
-            if hasattr(block, "text"):
+            if hasattr(block, "text") and block.text.strip():
                 text_parts.append(block.text)
 
         reply = "\n".join(text_parts)
-        print(f"{CYAN}watty:{RESET} {reply}")
+        if reply.strip():
+            print(f"{CYAN}watty:{RESET} {reply}")
+        else:
+            # Model used tools but returned no text — nudge it
+            messages.append({"role": "assistant", "content": response.content})
+            messages.append({"role": "user", "content": [{"type": "text", "text": "(You searched your memory but didn't respond. Please answer based on what you found.)"}]})
+            try:
+                followup = client.messages.create(
+                    model=model_id,
+                    max_tokens=4096,
+                    system=system,
+                    tools=TOOLS,
+                    messages=messages,
+                )
+                for block in followup.content:
+                    if hasattr(block, "text") and block.text.strip():
+                        text_parts.append(block.text)
+                reply = "\n".join(text_parts) or "(no response)"
+                print(f"{CYAN}watty:{RESET} {reply}")
+                response = followup
+            except Exception:
+                reply = "(no response)"
+                print(f"{CYAN}watty:{RESET} {reply}")
         print()
 
         messages.append({"role": "assistant", "content": response.content})
 
-        # Store reply in brain
-        brain.store_memory(reply, provider="watty_chat")
+        # Store reply in brain (skip empty)
+        if reply.strip() and reply != "(no response)":
+            brain.store_memory(reply, provider="watty_chat")
 
     _digest_and_exit(brain, turn_count)
 
@@ -310,7 +351,16 @@ def _run_local(args=None):
         print(f"Pull a model: ollama pull {ollama_model}")
         return
 
-    brain = Brain()
+    _real_stderr = sys.stderr
+    sys.stderr = open(os.devnull, "w")
+    try:
+        brain = Brain()
+        from watty.embeddings import embed_text
+        embed_text("warmup")
+    finally:
+        sys.stderr.close()
+        sys.stderr = _real_stderr
+
     shape = load_shape()
     shape_text = format_shape_for_context(shape)
     system = _build_system(shape_text)
