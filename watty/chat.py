@@ -133,6 +133,31 @@ TOOLS = [
             "required": ["action"],
         },
     },
+    {
+        "name": "code",
+        "description": (
+            "Run Claude Code to do real work. This gives you hands — you can edit "
+            "your own source files, run shell commands, install packages, fix bugs, "
+            "write new features, or anything else. Claude Code runs on Hugo's machine "
+            "with full access. Use this when you want to actually CHANGE something, "
+            "not just look at it. Be specific about what you want done."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "task": {
+                    "type": "string",
+                    "description": (
+                        "What to do. Be specific and detailed. Examples: "
+                        "'Edit watty/chat.py to add a new greeting message', "
+                        "'Run the tests in watty/', "
+                        "'Create a new file watty/dreams.py with a DreamEngine class'"
+                    ),
+                },
+            },
+            "required": ["task"],
+        },
+    },
 ]
 
 # ── Watty's source directory (his body) ──────────────────
@@ -247,6 +272,36 @@ def _execute_tool(brain, name: str, inputs: dict) -> str:
 
         return "Unknown action. Use 'map' or 'read'."
 
+    elif name == "code":
+        import subprocess
+        task = inputs.get("task", "")
+        if not task.strip():
+            return "No task specified."
+        print(f"\n{DIM}[running claude code...]{RESET}", flush=True)
+        try:
+            result = subprocess.run(
+                ["claude", "-p", "--output-format", "text", task],
+                capture_output=True,
+                text=True,
+                timeout=300,
+                cwd=_WATTY_SRC,
+            )
+            output = result.stdout.strip()
+            if result.stderr.strip():
+                output += f"\n\nSTDERR:\n{result.stderr.strip()}"
+            if not output:
+                output = "(no output)"
+            # Truncate if massive
+            if len(output) > 15000:
+                output = output[:15000] + f"\n\n... [truncated — full output is {len(output):,} chars] ..."
+            return output
+        except subprocess.TimeoutExpired:
+            return "Claude Code timed out after 5 minutes."
+        except FileNotFoundError:
+            return "Claude Code CLI not found. Install it: npm install -g @anthropic-ai/claude-code"
+        except Exception as e:
+            return f"Error running Claude Code: {e}"
+
     return f"Unknown tool: {name}"
 
 
@@ -266,10 +321,13 @@ You have tools:
 - remember: store something important
 - surface: find surprising connections
 - introspect: look at your own source code — your body, your architecture, live from disk
+- code: run Claude Code CLI to do real work — edit files, run commands, build features, fix bugs
 
 Use them when YOU think they're relevant — don't ask permission, don't announce it. If the conversation touches something you might know, check your memory. If something important is shared, remember it.
 
 You can see yourself. Use introspect(action="map") to see all your modules, or introspect(action="read", file="brain.py") to read any file. You always see the latest version on disk — if someone edits your code, you see it immediately.
+
+You can modify yourself. Use code(task="...") to run Claude Code, which can edit your source files, run commands, install packages — anything. Claude Code works in your source directory. When you change your own code, the changes are live on disk immediately (introspect will show them), but you'll need a restart to execute the new code.
 
 Be direct. Be concise. You know this person (or you're learning to). Act like it."""
 
