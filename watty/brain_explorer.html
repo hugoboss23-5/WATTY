@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watty Brain Explorer</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0a0f;
+  color: #e0e0e0;
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* ── Top bar ─────────────────────────── */
+#topbar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 48px;
+  background: rgba(10, 10, 20, 0.95);
+  border-bottom: 1px solid #1a1a2e;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+#topbar h1 { font-size: 16px; color: #7c3aed; font-weight: 600; }
+#topbar .stats { font-size: 12px; color: #666; }
+#topbar .stats span { color: #a78bfa; margin-left: 12px; }
+
+/* ── Controls ────────────────────────── */
+#controls {
+  position: fixed; top: 48px; left: 0; right: 0;
+  height: 44px;
+  background: rgba(10, 10, 20, 0.9);
+  border-bottom: 1px solid #111;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 16px;
+  z-index: 99;
+}
+.btn {
+  background: #1a1a2e;
+  border: 1px solid #2a2a4e;
+  color: #a78bfa;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.btn:hover { background: #2a2a4e; border-color: #7c3aed; }
+.btn.active { background: #7c3aed; color: white; border-color: #7c3aed; }
+.btn-group { display: flex; gap: 2px; }
+.btn-group .btn { border-radius: 0; }
+.btn-group .btn:first-child { border-radius: 6px 0 0 6px; }
+.btn-group .btn:last-child { border-radius: 0 6px 6px 0; }
+.separator { width: 1px; height: 24px; background: #222; margin: 0 8px; }
+#search {
+  background: #111;
+  border: 1px solid #222;
+  color: #e0e0e0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  width: 200px;
+  font-family: inherit;
+}
+#search:focus { outline: none; border-color: #7c3aed; }
+
+/* ── Canvas ──────────────────────────── */
+#canvas-container {
+  position: fixed;
+  top: 92px; left: 0; right: 0; bottom: 0;
+}
+canvas {
+  width: 100%; height: 100%;
+  cursor: grab;
+}
+canvas:active { cursor: grabbing; }
+
+/* ── Info panel ──────────────────────── */
+#info {
+  position: fixed;
+  right: 16px; top: 108px;
+  width: 340px;
+  max-height: calc(100vh - 124px);
+  background: rgba(10, 10, 20, 0.95);
+  border: 1px solid #1a1a2e;
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+  display: none;
+  z-index: 50;
+  backdrop-filter: blur(10px);
+}
+#info.visible { display: block; }
+#info-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid #1a1a2e;
+  display: flex; justify-content: space-between; align-items: center;
+}
+#info-header h3 { font-size: 13px; color: #7c3aed; }
+#info-close {
+  background: none; border: none; color: #666; cursor: pointer;
+  font-size: 16px; padding: 4px;
+}
+#info-close:hover { color: #e0e0e0; }
+#info-body {
+  padding: 14px 16px;
+  overflow-y: auto;
+  max-height: calc(100vh - 180px);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.info-label { color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 10px; }
+.info-value { color: #e0e0e0; margin-bottom: 4px; }
+.info-content {
+  background: #111;
+  border-radius: 6px;
+  padding: 10px;
+  margin: 6px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 11px;
+  color: #ccc;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.tier-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.tier-episodic { background: #1e3a5f; color: #60a5fa; }
+.tier-consolidated { background: #3b1f5e; color: #a78bfa; }
+.tier-schema { background: #1f3b1f; color: #6ee76e; }
+.association-item {
+  padding: 6px 0;
+  border-bottom: 1px solid #111;
+  display: flex; align-items: center; gap: 8px;
+  cursor: pointer;
+}
+.association-item:hover { background: rgba(124, 58, 237, 0.1); }
+.strength-bar {
+  width: 40px; height: 4px; background: #1a1a2e; border-radius: 2px;
+  overflow: hidden; flex-shrink: 0;
+}
+.strength-fill { height: 100%; background: #7c3aed; border-radius: 2px; }
+
+/* ── Legend ───────────────────────────── */
+#legend {
+  position: fixed;
+  left: 16px; bottom: 16px;
+  background: rgba(10, 10, 20, 0.9);
+  border: 1px solid #1a1a2e;
+  border-radius: 8px;
+  padding: 12px 16px;
+  z-index: 50;
+  font-size: 11px;
+}
+.legend-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── Loading ─────────────────────────── */
+#loading {
+  position: fixed; inset: 0;
+  background: #0a0a0f;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 1000;
+  transition: opacity 0.5s;
+}
+#loading.hidden { opacity: 0; pointer-events: none; }
+#loading h2 { color: #7c3aed; margin-bottom: 12px; font-size: 18px; }
+#loading p { color: #666; font-size: 13px; }
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid #1a1a2e;
+  border-top-color: #7c3aed;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading">
+  <div class="spinner"></div>
+  <h2>Watty Brain Explorer</h2>
+  <p id="loading-status">Connecting to brain...</p>
+</div>
+
+<!-- Top bar -->
+<div id="topbar">
+  <h1>Watty Brain Explorer</h1>
+  <div class="stats">
+    <span id="stat-memories">0 memories</span>
+    <span id="stat-associations">0 connections</span>
+    <span id="stat-clusters">0 clusters</span>
+  </div>
+</div>
+
+<!-- Controls -->
+<div id="controls">
+  <div class="btn-group">
+    <button class="btn active" data-color="provider" onclick="setColorMode('provider')">Provider</button>
+    <button class="btn" data-color="tier" onclick="setColorMode('tier')">Tier</button>
+    <button class="btn" data-color="age" onclick="setColorMode('age')">Age</button>
+    <button class="btn" data-color="access" onclick="setColorMode('access')">Access</button>
+  </div>
+  <div class="separator"></div>
+  <button class="btn" id="btn-edges" onclick="toggleEdges()">Connections</button>
+  <button class="btn" id="btn-labels" onclick="toggleLabels()">Labels</button>
+  <div class="separator"></div>
+  <input type="text" id="search" placeholder="Search memories..." oninput="searchMemories(this.value)">
+  <div class="separator"></div>
+  <button class="btn" onclick="resetView()">Reset View</button>
+  <button class="btn" onclick="refresh()">Refresh</button>
+</div>
+
+<!-- Canvas -->
+<div id="canvas-container">
+  <canvas id="brain"></canvas>
+</div>
+
+<!-- Info panel -->
+<div id="info">
+  <div id="info-header">
+    <h3 id="info-title">Memory</h3>
+    <button id="info-close" onclick="closeInfo()">&times;</button>
+  </div>
+  <div id="info-body"></div>
+</div>
+
+<!-- Legend -->
+<div id="legend" id="legend-content"></div>
+
+<script>
+// ── State ────────────────────────────────────────
+const API_BASE = window.location.origin;
+let points = [];
+let edges = [];
+let clusters = [];
+
+// View state
+let offsetX = 0, offsetY = 0, scale = 1;
+let isDragging = false, dragStartX = 0, dragStartY = 0;
+let hoveredPoint = null, selectedPoint = null;
+
+// Display options
+let colorMode = 'provider';
+let showEdges = false;
+let showLabels = false;
+let searchQuery = '';
+
+// Canvas
+let canvas, ctx;
+let W, H;
+let animFrame;
+
+// Colors
+const PROVIDER_COLORS = {
+  'manual':     '#7c3aed',
+  'claude':     '#f59e0b',
+  'chatgpt':    '#10b981',
+  'grok':       '#ef4444',
+  'gemini':     '#3b82f6',
+  'file_scan':  '#6366f1',
+  'cognition':  '#ec4899',
+  'discovery':  '#14b8a6',
+  'mentor':     '#f97316',
+};
+const TIER_COLORS = {
+  'episodic':     '#60a5fa',
+  'consolidated': '#a78bfa',
+  'schema':       '#6ee76e',
+};
+const DEFAULT_COLOR = '#555';
+
+
+// ── Data Loading ─────────────────────────────────
+
+async function loadData() {
+  setLoadingStatus('Loading memories...');
+  try {
+    const [embRes, assocRes, statsRes] = await Promise.all([
+      fetch(`${API_BASE}/api/embeddings`).then(r => r.json()),
+      fetch(`${API_BASE}/api/associations`).then(r => r.json()),
+      fetch(`${API_BASE}/api/stats`).then(r => r.json()),
+    ]);
+
+    points = embRes.points || [];
+    edges = assocRes.edges || [];
+
+    // Build edge index for quick lookup
+    buildEdgeIndex();
+
+    // Update stats
+    document.getElementById('stat-memories').textContent = `${points.length} memories`;
+    document.getElementById('stat-associations').textContent = `${edges.length} connections`;
+    document.getElementById('stat-clusters').textContent = `${statsRes.total_associations || 0} assoc`;
+
+    setLoadingStatus('Rendering...');
+    await new Promise(r => setTimeout(r, 50));
+
+    // Hide loading
+    document.getElementById('loading').classList.add('hidden');
+
+    // Update legend
+    updateLegend();
+
+    // Start rendering
+    render();
+
+  } catch (err) {
+    setLoadingStatus(`Error: ${err.message}. Is the remote server running?`);
+    console.error(err);
+  }
+}
+
+function setLoadingStatus(text) {
+  document.getElementById('loading-status').textContent = text;
+}
+
+// ── Edge Index ───────────────────────────────────
+
+let edgeIndex = {}; // chunk_id -> [{target, strength}]
+
+function buildEdgeIndex() {
+  edgeIndex = {};
+  for (const e of edges) {
+    if (!edgeIndex[e.source]) edgeIndex[e.source] = [];
+    edgeIndex[e.source].push({ target: e.target, strength: e.strength });
+  }
+}
+
+
+// ── Canvas Setup ─────────────────────────────────
+
+function setupCanvas() {
+  canvas = document.getElementById('brain');
+  ctx = canvas.getContext('2d');
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Pan
+  canvas.addEventListener('mousedown', (e) => {
+    if (e.button === 0) {
+      isDragging = true;
+      dragStartX = e.clientX - offsetX;
+      dragStartY = e.clientY - offsetY;
+    }
+  });
+  canvas.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+      offsetX = e.clientX - dragStartX;
+      offsetY = e.clientY - dragStartY;
+      render();
+    } else {
+      handleHover(e);
+    }
+  });
+  canvas.addEventListener('mouseup', () => { isDragging = false; });
+  canvas.addEventListener('mouseleave', () => { isDragging = false; hoveredPoint = null; render(); });
+
+  // Zoom
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+    const mx = e.clientX, my = e.clientY - 92;
+    // Zoom toward mouse position
+    offsetX = mx - (mx - offsetX) * zoomFactor;
+    offsetY = my - (my - offsetY) * zoomFactor;
+    scale *= zoomFactor;
+    render();
+  }, { passive: false });
+
+  // Click
+  canvas.addEventListener('click', (e) => {
+    if (hoveredPoint) {
+      selectedPoint = hoveredPoint;
+      showInfo(selectedPoint);
+      render();
+    } else {
+      closeInfo();
+      selectedPoint = null;
+      render();
+    }
+  });
+}
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  const container = document.getElementById('canvas-container');
+  W = container.clientWidth;
+  H = container.clientHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  render();
+}
+
+// ── World <-> Screen ─────────────────────────────
+
+function worldToScreen(x, y) {
+  const sx = x * scale * (Math.min(W, H) * 0.4) + W / 2 + offsetX;
+  const sy = y * scale * (Math.min(W, H) * 0.4) + H / 2 + offsetY;
+  return [sx, sy];
+}
+
+function screenToWorld(sx, sy) {
+  const s = scale * (Math.min(W, H) * 0.4);
+  return [(sx - W / 2 - offsetX) / s, (sy - H / 2 - offsetY) / s];
+}
+
+// ── Point Color ──────────────────────────────────
+
+function getPointColor(p) {
+  if (searchQuery && !matchesSearch(p)) return 'rgba(40, 40, 60, 0.3)';
+
+  switch (colorMode) {
+    case 'provider':
+      return PROVIDER_COLORS[p.provider] || DEFAULT_COLOR;
+    case 'tier':
+      return TIER_COLORS[p.tier] || DEFAULT_COLOR;
+    case 'age': {
+      const now = Date.now();
+      const created = new Date(p.created_at).getTime();
+      const ageDays = (now - created) / 86400000;
+      const t = Math.min(ageDays / 365, 1);
+      // New = bright cyan, old = dim blue
+      const r = Math.round(20 + t * 30);
+      const g = Math.round(200 - t * 150);
+      const b = Math.round(255 - t * 100);
+      return `rgb(${r},${g},${b})`;
+    }
+    case 'access': {
+      const a = Math.min(p.access_count / 10, 1);
+      // Low = dim, high = bright
+      const r = Math.round(60 + a * 180);
+      const g = Math.round(40 + a * 20);
+      const b = Math.round(200 + a * 55);
+      return `rgb(${r},${g},${b})`;
+    }
+    default:
+      return DEFAULT_COLOR;
+  }
+}
+
+function getPointRadius(p) {
+  const base = 3;
+  const accessBoost = Math.min(p.access_count / 5, 3);
+  const sigBoost = (p.significance || 0) * 2;
+  let r = base + accessBoost + sigBoost;
+  if (p === hoveredPoint || p === selectedPoint) r += 3;
+  return r;
+}
+
+function getPointAlpha(p) {
+  if (searchQuery && !matchesSearch(p)) return 0.15;
+  const sig = p.significance || 0;
+  return Math.max(0.3, Math.min(1, 0.4 + sig * 0.6 + (p.access_count || 0) * 0.05));
+}
+
+function matchesSearch(p) {
+  if (!searchQuery) return true;
+  const q = searchQuery.toLowerCase();
+  return (p.content && p.content.toLowerCase().includes(q)) ||
+         (p.provider && p.provider.toLowerCase().includes(q)) ||
+         (p.tier && p.tier.toLowerCase().includes(q));
+}
+
+
+// ── Rendering ────────────────────────────────────
+
+function render() {
+  if (!ctx) return;
+  ctx.clearRect(0, 0, W, H);
+
+  // Draw grid
+  drawGrid();
+
+  // Draw edges
+  if (showEdges) drawEdges();
+
+  // Draw selected point's edges
+  if (selectedPoint) drawSelectedEdges();
+
+  // Draw points
+  for (const p of points) {
+    const [sx, sy] = worldToScreen(p.x, p.y);
+    if (sx < -50 || sx > W + 50 || sy < -50 || sy > H + 50) continue;
+
+    const color = getPointColor(p);
+    const radius = getPointRadius(p);
+    const alpha = getPointAlpha(p);
+
+    // Glow for selected/hovered
+    if (p === selectedPoint || p === hoveredPoint) {
+      ctx.beginPath();
+      ctx.arc(sx, sy, radius + 8, 0, Math.PI * 2);
+      ctx.fillStyle = color.replace(')', `, 0.15)`).replace('rgb', 'rgba');
+      ctx.fill();
+    }
+
+    ctx.beginPath();
+    ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Label
+    if (showLabels && radius > 4 && scale > 0.8) {
+      ctx.font = '9px monospace';
+      ctx.fillStyle = 'rgba(200, 200, 200, 0.6)';
+      ctx.fillText(p.provider, sx + radius + 4, sy + 3);
+    }
+  }
+
+  // Tooltip for hovered point
+  if (hoveredPoint) {
+    drawTooltip(hoveredPoint);
+  }
+}
+
+function drawGrid() {
+  ctx.strokeStyle = 'rgba(30, 30, 50, 0.5)';
+  ctx.lineWidth = 0.5;
+  const spacing = 100 * scale;
+  if (spacing < 20) return;
+
+  const startX = (offsetX % spacing + W / 2 % spacing);
+  const startY = (offsetY % spacing + H / 2 % spacing);
+
+  ctx.beginPath();
+  for (let x = startX; x < W; x += spacing) {
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, H);
+  }
+  for (let y = startY; y < H; y += spacing) {
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+  }
+  ctx.stroke();
+}
+
+function drawEdges() {
+  ctx.lineWidth = 0.5;
+  const pointMap = {};
+  for (const p of points) pointMap[p.id] = p;
+
+  for (const e of edges) {
+    const src = pointMap[e.source];
+    const tgt = pointMap[e.target];
+    if (!src || !tgt) continue;
+
+    const [sx1, sy1] = worldToScreen(src.x, src.y);
+    const [sx2, sy2] = worldToScreen(tgt.x, tgt.y);
+
+    // Skip off-screen edges
+    if (sx1 < -50 && sx2 < -50) continue;
+    if (sx1 > W + 50 && sx2 > W + 50) continue;
+    if (sy1 < -50 && sy2 < -50) continue;
+    if (sy1 > H + 50 && sy2 > H + 50) continue;
+
+    ctx.beginPath();
+    ctx.moveTo(sx1, sy1);
+    ctx.lineTo(sx2, sy2);
+    ctx.strokeStyle = `rgba(124, 58, 237, ${e.strength * 0.15})`;
+    ctx.stroke();
+  }
+}
+
+function drawSelectedEdges() {
+  if (!selectedPoint) return;
+  const assocs = edgeIndex[selectedPoint.id] || [];
+  const pointMap = {};
+  for (const p of points) pointMap[p.id] = p;
+
+  for (const a of assocs) {
+    const tgt = pointMap[a.target];
+    if (!tgt) continue;
+
+    const [sx1, sy1] = worldToScreen(selectedPoint.x, selectedPoint.y);
+    const [sx2, sy2] = worldToScreen(tgt.x, tgt.y);
+
+    ctx.beginPath();
+    ctx.moveTo(sx1, sy1);
+    ctx.lineTo(sx2, sy2);
+    ctx.lineWidth = 1 + a.strength * 2;
+    ctx.strokeStyle = `rgba(167, 139, 250, ${0.3 + a.strength * 0.5})`;
+    ctx.stroke();
+
+    // Target highlight
+    ctx.beginPath();
+    ctx.arc(sx2, sy2, 5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(167, 139, 250, 0.5)';
+    ctx.fill();
+  }
+  ctx.lineWidth = 1;
+}
+
+function drawTooltip(p) {
+  const [sx, sy] = worldToScreen(p.x, p.y);
+  const text = p.content ? p.content.substring(0, 80) + '...' : 'No content';
+  const provText = `${p.provider} | ${p.tier}`;
+
+  const pad = 10;
+  ctx.font = '11px monospace';
+  const tw = Math.max(ctx.measureText(text).width, ctx.measureText(provText).width) + pad * 2;
+  const th = 44;
+  let tx = sx + 12, ty = sy - th - 8;
+  if (tx + tw > W - 16) tx = sx - tw - 12;
+  if (ty < 8) ty = sy + 12;
+
+  // Background
+  ctx.fillStyle = 'rgba(10, 10, 20, 0.95)';
+  ctx.beginPath();
+  ctx.roundRect(tx, ty, tw, th, 6);
+  ctx.fill();
+  ctx.strokeStyle = '#2a2a4e';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Text
+  ctx.fillStyle = '#e0e0e0';
+  ctx.fillText(text, tx + pad, ty + 18);
+  ctx.fillStyle = '#7c3aed';
+  ctx.font = '10px monospace';
+  ctx.fillText(provText, tx + pad, ty + 34);
+}
+
+
+// ── Hover Detection ──────────────────────────────
+
+function handleHover(e) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  let closest = null, minDist = 15;
+
+  for (const p of points) {
+    const [sx, sy] = worldToScreen(p.x, p.y);
+    const dist = Math.sqrt((mx - sx) ** 2 + (my - sy) ** 2);
+    if (dist < minDist) {
+      minDist = dist;
+      closest = p;
+    }
+  }
+
+  if (closest !== hoveredPoint) {
+    hoveredPoint = closest;
+    canvas.style.cursor = closest ? 'pointer' : 'grab';
+    render();
+  }
+}
+
+
+// ── Info Panel ───────────────────────────────────
+
+function showInfo(p) {
+  const panel = document.getElementById('info');
+  const body = document.getElementById('info-body');
+  const title = document.getElementById('info-title');
+
+  title.textContent = `Memory #${p.id}`;
+
+  const tierClass = `tier-${p.tier || 'episodic'}`;
+  const assocs = edgeIndex[p.id] || [];
+  const pointMap = {};
+  for (const pt of points) pointMap[pt.id] = pt;
+
+  let html = `
+    <div class="info-label">Tier</div>
+    <div class="info-value"><span class="tier-badge ${tierClass}">${p.tier || 'episodic'}</span></div>
+
+    <div class="info-label">Provider</div>
+    <div class="info-value">${p.provider}</div>
+
+    <div class="info-label">Created</div>
+    <div class="info-value">${formatDate(p.created_at)}</div>
+
+    <div class="info-label">Stats</div>
+    <div class="info-value">Accessed ${p.access_count}x | Significance: ${(p.significance || 0).toFixed(2)}</div>
+
+    <div class="info-label">Content</div>
+    <div class="info-content">${escapeHtml(p.content)}</div>
+  `;
+
+  if (assocs.length > 0) {
+    html += `<div class="info-label">Connections (${assocs.length})</div>`;
+    for (const a of assocs.slice(0, 15)) {
+      const tgt = pointMap[a.target];
+      const preview = tgt ? tgt.content.substring(0, 60) : `Memory #${a.target}`;
+      const pct = Math.round(a.strength * 100);
+      html += `
+        <div class="association-item" onclick="navigateTo(${a.target})">
+          <div class="strength-bar"><div class="strength-fill" style="width:${pct}%"></div></div>
+          <span style="color:#888;font-size:10px">${pct}%</span>
+          <span style="font-size:11px">${escapeHtml(preview)}</span>
+        </div>`;
+    }
+  }
+
+  body.innerHTML = html;
+  panel.classList.add('visible');
+}
+
+function closeInfo() {
+  document.getElementById('info').classList.remove('visible');
+}
+
+function navigateTo(id) {
+  const p = points.find(pt => pt.id === id);
+  if (!p) return;
+  selectedPoint = p;
+  // Center on this point
+  const [sx, sy] = worldToScreen(p.x, p.y);
+  offsetX += W / 2 - sx;
+  offsetY += H / 2 - sy;
+  showInfo(p);
+  render();
+}
+
+
+// ── Controls ─────────────────────────────────────
+
+function setColorMode(mode) {
+  colorMode = mode;
+  document.querySelectorAll('[data-color]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.color === mode);
+  });
+  updateLegend();
+  render();
+}
+
+function toggleEdges() {
+  showEdges = !showEdges;
+  document.getElementById('btn-edges').classList.toggle('active', showEdges);
+  render();
+}
+
+function toggleLabels() {
+  showLabels = !showLabels;
+  document.getElementById('btn-labels').classList.toggle('active', showLabels);
+  render();
+}
+
+function searchMemories(query) {
+  searchQuery = query.trim();
+  render();
+}
+
+function resetView() {
+  offsetX = 0; offsetY = 0; scale = 1;
+  selectedPoint = null;
+  closeInfo();
+  render();
+}
+
+async function refresh() {
+  document.getElementById('loading').classList.remove('hidden');
+  await loadData();
+}
+
+
+// ── Legend ────────────────────────────────────────
+
+function updateLegend() {
+  const legend = document.getElementById('legend');
+  let html = '';
+
+  if (colorMode === 'provider') {
+    const seen = new Set(points.map(p => p.provider));
+    for (const [prov, color] of Object.entries(PROVIDER_COLORS)) {
+      if (seen.has(prov)) {
+        html += `<div class="legend-row"><div class="legend-dot" style="background:${color}"></div>${prov}</div>`;
+      }
+    }
+  } else if (colorMode === 'tier') {
+    for (const [tier, color] of Object.entries(TIER_COLORS)) {
+      html += `<div class="legend-row"><div class="legend-dot" style="background:${color}"></div>${tier}</div>`;
+    }
+  } else if (colorMode === 'age') {
+    html += `<div class="legend-row"><div class="legend-dot" style="background:rgb(20,200,255)"></div>New</div>`;
+    html += `<div class="legend-row"><div class="legend-dot" style="background:rgb(50,50,155)"></div>Old</div>`;
+  } else if (colorMode === 'access') {
+    html += `<div class="legend-row"><div class="legend-dot" style="background:rgb(60,40,200)"></div>Rarely accessed</div>`;
+    html += `<div class="legend-row"><div class="legend-dot" style="background:rgb(240,60,255)"></div>Frequently accessed</div>`;
+  }
+
+  legend.innerHTML = html;
+}
+
+
+// ── Helpers ──────────────────────────────────────
+
+function formatDate(iso) {
+  if (!iso) return '?';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+
+// ── Init ─────────────────────────────────────────
+
+setupCanvas();
+loadData();
+</script>
+</body>
+</html>
