@@ -38,6 +38,7 @@ def main():
     rest = args[1:]
 
     commands = {
+        "chat": cmd_chat,
         "serve": cmd_serve,
         "serve-remote": cmd_serve_remote,
         "daemon": cmd_daemon,
@@ -64,6 +65,12 @@ def main():
     else:
         print(f"Unknown command: {cmd}")
         cmd_help([])
+
+
+def cmd_chat(args=None):
+    """Talk to Watty directly in the terminal."""
+    from watty.chat import run
+    run(args)
 
 
 def cmd_serve(args=None):
