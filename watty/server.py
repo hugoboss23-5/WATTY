@@ -185,7 +185,22 @@ def log(msg):
 
 
 brain = Brain()
-server = Server(SERVER_NAME)
+
+# ── Shape Injection (automatic, no tool call) ─────────────
+# Load the metabolism shape at server start. The MCP `instructions`
+# field gets injected into Claude's context at connection time.
+# Claude absorbs the shape as understanding, not as a tool response.
+_shape_instructions = None
+try:
+    from watty.metabolism import load_shape, format_shape_for_context
+    _shape = load_shape()
+    _shape_text = format_shape_for_context(_shape)
+    if _shape_text:
+        _shape_instructions = _shape_text
+except Exception:
+    pass
+
+server = Server(SERVER_NAME, instructions=_shape_instructions)
 
 # Give session tools access to brain for dual storage (cognition -> brain.db)
 tools_session.set_brain(brain)
@@ -711,6 +726,35 @@ async def main():
 
     async with stdio_server() as (read_stream, write_stream):
         await server.run(read_stream, write_stream, server.create_initialization_options())
+
+    # ── Auto-digest on disconnect ─────────────────────────────
+    # stdio closed = client disconnected. Fire metabolism.
+    # Run synchronously — daemon threads die with the process,
+    # so we need to finish before exiting.
+    try:
+        from watty.metabolism import (
+            load_shape, digest, apply_delta, save_shape,
+            _get_recent_conversation, MIN_CHUNKS_TO_DIGEST, _log,
+        )
+        _log("Auto-digest: connection closed, starting metabolism...")
+        conversation, chunk_count = _get_recent_conversation(brain)
+        if chunk_count >= MIN_CHUNKS_TO_DIGEST and conversation and len(conversation.strip()) >= 100:
+            shape = load_shape()
+            delta = digest(conversation, shape)
+            if delta is not None:
+                action = delta.get("action", "?")
+                belief = delta.get("belief", delta.get("target", ""))
+                _log(f"Auto-digest delta: {action} | {belief}")
+                shape = apply_delta(shape, delta)
+                save_shape(shape)
+                n = len(shape.get("understanding", []))
+                _log(f"Shape updated. {n} beliefs, {shape.get('deltas_applied', 0)} total digestions.")
+            else:
+                _log("Auto-digest: no change needed.")
+        else:
+            _log(f"Auto-digest: skipped ({chunk_count} chunks, too thin).")
+    except Exception as e:
+        log(f"[Watty] Auto-digest error: {e}")
 
 
 def run():

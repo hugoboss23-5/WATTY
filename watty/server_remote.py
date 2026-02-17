@@ -87,7 +87,18 @@ tools_a2a.set_brain(brain)
 # ── Build MCP server (identical to server.py) ──────────────
 def _build_mcp_server() -> Server:
     """Build a fresh MCP Server instance with all tools registered."""
-    srv = Server(SERVER_NAME)
+    # Load shape for server instructions (automatic context injection)
+    _shape_instructions = None
+    try:
+        from watty.metabolism import load_shape, format_shape_for_context
+        _shape = load_shape()
+        _shape_text = format_shape_for_context(_shape)
+        if _shape_text:
+            _shape_instructions = _shape_text
+    except Exception:
+        pass
+
+    srv = Server(SERVER_NAME, instructions=_shape_instructions)
 
     EXTRA_TOOLS = (
         tools_infra.TOOLS +
