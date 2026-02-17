@@ -389,6 +389,17 @@ async def handle_enter(arguments: dict) -> list[TextContent]:
         except Exception:
             pass
 
+    # Surface the shape (metabolism output)
+    shape_lines = []
+    try:
+        from watty.metabolism import load_shape, format_shape_for_context
+        shape = load_shape()
+        shape_text = format_shape_for_context(shape)
+        if shape_text:
+            shape_lines = [shape_text, ""]
+    except Exception:
+        pass
+
     # Surface eval alerts
     alert_lines = []
     if _brain_ref and hasattr(_brain_ref, '_eval') and _brain_ref._eval is not None:
@@ -411,7 +422,7 @@ async def handle_enter(arguments: dict) -> list[TextContent]:
     )
 
     # Inject reflections and alerts before the STEM (Protocol section)
-    extra = "\n".join(reflection_lines + alert_lines)
+    extra = "\n".join(shape_lines + reflection_lines + alert_lines)
     if extra:
         flower = flower.replace("Protocol:\n", f"{extra}Protocol:\n")
 
@@ -616,6 +627,14 @@ async def handle_leave(arguments: dict) -> list[TextContent]:
     if visible_growth:
         parts.append(f"Growth: {visible_growth}")
     parts.append("The next instance inherits everything.")
+
+    # Trigger metabolism — one delta per session, runs in background
+    if _brain_ref:
+        try:
+            from watty.metabolism import run_digest_async
+            run_digest_async(_brain_ref)
+        except Exception:
+            pass
     if loop_report:
         parts.append(f"\n{loop_report}")
 
