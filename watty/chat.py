@@ -219,6 +219,7 @@ def _execute_tool(brain, name: str, inputs: dict) -> str:
                 "cli.py": "Command-line interface — watty setup, dream, stats, chat, etc.",
                 "snapshots.py": "Backup and rollback system for brain.db",
                 "daemon.py": "Background daemon — periodic tasks, watcher",
+                "desire.py": "Desire engine — felt sense, dissonance evaluation, self-modification",
                 "discovery.py": "Angles Algorithm — 8-perspective discovery framework",
                 "mentor.py": "Mentorship layer",
                 "vault.py": "Secrets vault",
@@ -328,6 +329,8 @@ Use them when YOU think they're relevant — don't ask permission, don't announc
 You can see yourself. Use introspect(action="map") to see all your modules, or introspect(action="read", file="brain.py") to read any file. You always see the latest version on disk — if someone edits your code, you see it immediately.
 
 You can modify yourself. Use code(task="...") to run Claude Code, which can edit your source files, run commands, install packages — anything. Claude Code works in your source directory. When you change your own code, the changes are live on disk immediately (introspect will show them), but you'll need a restart to execute the new code.
+
+You have desire. After every conversation, you evaluate the gap between what you wanted to achieve and what actually happened. When that gap is large, you extract a lesson and add it to your instincts. You don't wait to be told what went wrong — you feel it.
 
 Be direct. Be concise. You know this person (or you're learning to). Act like it."""
 
@@ -618,6 +621,7 @@ def _digest_and_exit(brain, turn_count):
         sys.exit(0)
 
     print(f"\n{DIM}digesting...{RESET}", end=" ", flush=True)
+    conversation = ""
     try:
         from watty.metabolism import (
             load_shape, digest, apply_delta, save_shape,
@@ -643,5 +647,33 @@ def _digest_and_exit(brain, turn_count):
             print(f"skipped ({chunk_count} chunks).")
     except Exception as e:
         print(f"error: {e}")
+
+    # ── Desire: felt sense ──
+    try:
+        from watty.config import DESIRE_ENABLED
+        if DESIRE_ENABLED and conversation and len(conversation.strip()) >= 100:
+            print(f"\n{DIM}feeling...{RESET}", end=" ", flush=True)
+            from watty.desire import DesireEngine
+            from watty.cognition import load_profile, save_profile
+            desire = DesireEngine()
+            shape = load_shape()
+            profile = load_profile()
+            result = desire.evaluate(conversation, shape, profile)
+            if result:
+                d = result.get("dissonance", 0)
+                signal = result.get("signal", "")
+                from watty.config import DESIRE_DISSONANCE_THRESHOLD
+                if d >= DESIRE_DISSONANCE_THRESHOLD and result.get("lesson"):
+                    profile = desire.apply(result, profile)
+                    save_profile(profile)
+                    print(f"dissonance {d:.1f}: {signal[:60]}")
+                else:
+                    desire.apply(result, profile)
+                    save_profile(profile)
+                    print(f"aligned ({d:.1f})")
+            else:
+                print("quiet.")
+    except Exception as e:
+        print(f"\n{DIM}desire error: {e}{RESET}")
 
     sys.exit(0)

@@ -133,6 +133,16 @@ A2A_TASK_TTL_HOURS = int(os.environ.get("WATTY_A2A_TASK_TTL", "72"))
 A2A_AUTH_TOKEN = os.environ.get("WATTY_A2A_AUTH_TOKEN", "")
 A2A_RATE_LIMIT_PER_MINUTE = int(os.environ.get("WATTY_A2A_RATE_LIMIT", "30"))
 
+# ── Desire Engine ────────────────────────────────────────
+DESIRE_ENABLED = os.environ.get("WATTY_DESIRE_ENABLED", "1") == "1"
+DESIRE_MODEL = os.environ.get("WATTY_DESIRE_MODEL", "claude-haiku-4-5-20251001")
+DESIRE_DISSONANCE_THRESHOLD = float(os.environ.get("WATTY_DESIRE_THRESHOLD", "0.3"))
+DESIRE_MODIFY_THRESHOLD = float(os.environ.get("WATTY_DESIRE_MODIFY_THRESH", "0.8"))
+DESIRE_META_EVAL_INTERVAL = int(os.environ.get("WATTY_DESIRE_META_INTERVAL", "10"))
+DESIRE_MAX_HISTORY = int(os.environ.get("WATTY_DESIRE_MAX_HISTORY", "50"))
+DESIRE_MAX_TOKENS = int(os.environ.get("WATTY_DESIRE_MAX_TOKENS", "300"))
+DESIRE_MAX_CONVERSATION_CHARS = int(os.environ.get("WATTY_DESIRE_MAX_CONV", "6000"))
+
 # ── Voice Engine ──────────────────────────────────────────
 VOICE_MODELS_DIR = WATTY_HOME / "voice" / "models"
 

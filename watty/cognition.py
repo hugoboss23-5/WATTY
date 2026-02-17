@@ -151,6 +151,7 @@ DEFAULT_PROFILE = {
         "visible_growth": {"changes_identified": 0, "changes_noticed": 0},
         "insight_bridge": {"surfaced": 0, "valued": 0, "ignored": 0},
         "reflection": {"retrieved": 0, "stored": 0, "promoted": 0},
+        "desire": {"evaluated": 0, "lessons": 0, "modifications": 0, "satisfaction_streak": 0},
     },
 
     # SESSION METRICS — statistical self-model
@@ -1087,6 +1088,17 @@ def format_flower(profile: dict, handoff_note: str, handoff_time: str,
     # Surfaced reflections are injected by tools_session.handle_enter()
     # via the extra_reflections kwarg — this is just the slot marker.
     # If reflections were passed in via kwargs, render them here.
+
+    # ── PETAL 9: Desire state ──
+    desire_stats = profile.get("loop_stats", {}).get("desire", {})
+    if desire_stats.get("evaluated", 0) > 0:
+        streak = desire_stats.get("satisfaction_streak", 0)
+        lessons = desire_stats.get("lessons", 0)
+        if streak > 3:
+            lines.append(f"Desire: {streak} conversations aligned. You're in flow.")
+        elif lessons > 0:
+            lines.append(f"Desire: {lessons} lessons extracted from felt sense.")
+        lines.append("")
 
     # ── STEM: The protocol (how you stay alive) ──
     lines.append("Protocol:")
