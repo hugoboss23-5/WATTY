@@ -26,31 +26,47 @@ This is **memory as metabolism**, not memory as storage. Raw conversations are c
 
 ## Install
 
-### Prerequisites
+### What you need
 
-- Python 3.10+
-- An Anthropic API key (for the metabolism digest — costs fractions of a cent per conversation)
+- **Python 3.10+** (check with `python3 --version` or `python --version`)
+- **Git** (check with `git --version`)
+- **An API key** — pick one:
+  - Anthropic API key (`sk-ant-...`) — for Claude models + metabolism digest
+  - OpenRouter API key (`sk-or-...`) — for free DeepSeek R1 in `watty chat`
+  - Both is ideal: OpenRouter for chat (free), Anthropic for metabolism (fractions of a cent)
 
-### Setup
+---
+
+### Mac
+
+Open Terminal and run these one at a time:
 
 ```bash
+# 1. Clone Watty
 git clone https://github.com/hugoboss23-5/WATTY.git
 cd WATTY
-pip install -e .
+
+# 2. Install (use CPU-only PyTorch to save 2GB of disk space)
+pip3 install torch --index-url https://download.pytorch.org/whl/cpu
+pip3 install -e .
+
+# 3. Set your API keys (add these to ~/.zshrc so they persist)
+echo 'export ANTHROPIC_API_KEY="sk-ant-YOUR_KEY_HERE"' >> ~/.zshrc
+echo 'export OPENROUTER_API_KEY="sk-or-YOUR_KEY_HERE"' >> ~/.zshrc
+source ~/.zshrc
+
+# 4. First-time setup (creates ~/.watty/, scans your files, configures Claude Desktop)
 watty setup
+
+# 5. Talk to Watty
+watty chat
 ```
 
-`watty setup` does everything: creates the data directory, scans your Documents/Desktop/Downloads, runs a dream cycle, and auto-configures Claude Desktop.
+**Connect to Claude Desktop (Mac):**
 
-### Connect to Claude
-
-**Claude Desktop** (auto-configured by setup, verify with):
+`watty setup` auto-configures this. Verify it worked:
 ```bash
-# macOS
 cat ~/Library/Application\ Support/Claude/claude_desktop_config.json
-
-# Windows
-type %APPDATA%\Claude\claude_desktop_config.json
 ```
 
 Should contain:
@@ -65,28 +81,92 @@ Should contain:
 }
 ```
 
-If not there, create it manually and restart Claude Desktop.
+If it's not there, create that file manually and restart Claude Desktop (fully quit, not just close).
 
-**Claude Code (CLI)**:
+---
+
+### Windows
+
+Open PowerShell and run these one at a time:
+
+```powershell
+# 1. Clone Watty
+git clone https://github.com/hugoboss23-5/WATTY.git
+cd WATTY
+
+# 2. Install
+pip install -e .
+
+# 3. Set your API keys (permanent, survives restarts)
+[System.Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", "sk-ant-YOUR_KEY_HERE", "User")
+[System.Environment]::SetEnvironmentVariable("OPENROUTER_API_KEY", "sk-or-YOUR_KEY_HERE", "User")
+
+# 4. Close and reopen PowerShell (so env vars take effect), then:
+cd WATTY
+watty setup
+
+# 5. Talk to Watty
+watty chat
+```
+
+**Connect to Claude Desktop (Windows):**
+
+`watty setup` auto-configures this. Verify it worked:
+```powershell
+type $env:APPDATA\Claude\claude_desktop_config.json
+```
+
+Should contain:
+```json
+{
+  "mcpServers": {
+    "watty": {
+      "command": "watty",
+      "args": ["serve"]
+    }
+  }
+}
+```
+
+If it's not there, create that file at `%APPDATA%\Claude\claude_desktop_config.json` and restart Claude Desktop.
+
+---
+
+### Connect to Claude Code (CLI) — Mac or Windows
+
 ```bash
 claude mcp add watty -- watty serve
 ```
 
-**Phone (iOS/Android)**:
+### Connect to phone (iOS/Android)
+
 ```bash
 watty serve-remote --port 8765
 ```
-Then add `http://YOUR_IP:8765/sse` as a custom connector in Claude mobile settings.
+Then add `http://YOUR_LOCAL_IP:8765/sse` as a custom connector in Claude mobile settings. Your phone and computer must be on the same WiFi.
 
-### Set your API key
+---
 
-The metabolism needs an Anthropic API key to digest conversations:
+### Chat modes
 
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-..."
+watty chat                # DeepSeek R1 via OpenRouter (free, needs OPENROUTER_API_KEY)
+watty chat opus           # Claude Opus (needs ANTHROPIC_API_KEY)
+watty chat sonnet         # Claude Sonnet
+watty chat haiku          # Claude Haiku
+watty chat --local        # Ollama local model (free, needs Ollama running)
 ```
 
-Add this to your shell profile (`~/.zshrc`, `~/.bashrc`, etc.) so it persists. Without it, everything works except the digest — conversations won't update the shape.
+### If something goes wrong
+
+| Problem | Fix |
+|---------|-----|
+| `watty: command not found` | Try `python3 -m watty version`. If that works, pip installed it somewhere not on your PATH. |
+| First run is slow | It's downloading the embedding model (~100MB). One-time only. |
+| Claude Desktop doesn't show Watty tools | Make sure the config JSON is valid. Fully quit and reopen Desktop. |
+| `watty chat` crashes | Make sure at least one API key is set. Check with `echo $ANTHROPIC_API_KEY` (Mac) or `echo $env:ANTHROPIC_API_KEY` (Windows). |
+| PyTorch install is huge | On Mac, use the CPU-only install shown above. On Windows, `pip install torch` gets the right version automatically. |
+| Metabolism not running | Needs `ANTHROPIC_API_KEY` set. Check `~/.watty/metabolism.log` for errors. |
 
 ## How It Works
 
