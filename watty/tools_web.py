@@ -165,6 +165,16 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             self._handle_eval_alerts()
         elif path == "/api/eval/stats":
             self._handle_eval_stats()
+        elif path == "/trading":
+            self._html_response(_TRADING_HTML)
+        elif path == "/api/trading/portfolio":
+            self._handle_trading_portfolio()
+        elif path == "/api/trading/market":
+            self._handle_trading_market(params)
+        elif path == "/api/trading/chain":
+            self._handle_trading_chain(params)
+        elif path == "/api/trading/analyze":
+            self._handle_trading_analyze(params)
         else:
             self._json_response({"error": "Not found"}, 404)
 
@@ -185,6 +195,10 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             self._handle_resolve(body)
         elif path == "/api/chat/send":
             self._handle_chat_send(body)
+        elif path == "/api/trading/buy":
+            self._handle_trading_buy(body)
+        elif path == "/api/trading/sell":
+            self._handle_trading_sell(body)
         elif path == "/api/eval/ack_alert":
             self._handle_eval_ack_alert(body)
         else:
@@ -345,6 +359,106 @@ class _DashboardHandler(BaseHTTPRequestHandler):
         try:
             brain._eval.acknowledge_alert(int(alert_id))
             self._json_response({"ok": True})
+        except Exception as e:
+            self._json_response({"error": str(e)})
+
+    # ── Trading endpoints ──────────────────────────────
+
+    def _get_trade_module(self):
+        from watty.tools_trade import execute_trade, _load_portfolio
+        return execute_trade, _load_portfolio
+
+    def _handle_trading_portfolio(self):
+        try:
+            execute_trade, _load_portfolio = self._get_trade_module()
+            portfolio = _load_portfolio()
+            # Enrich open positions with current prices
+            import yfinance as yf
+            total_value = portfolio["cash"]
+            for pos in portfolio["open_positions"]:
+                try:
+                    t = yf.Ticker(pos["ticker"])
+                    chain = t.option_chain(pos["expiry"])
+                    df = chain.calls if pos["type"] == "call" else chain.puts
+                    match = df[df["strike"] == pos["strike"]]
+                    if not match.empty:
+                        row = match.iloc[0]
+                        bid = row.get("bid", 0) or row.get("lastPrice", 0)
+                        pos["current_price"] = float(bid) if bid else 0
+                        pos["current_value"] = pos["current_price"] * 100 * pos["contracts"]
+                        pos["pnl"] = pos["current_value"] - pos["cost"]
+                        pos["pnl_pct"] = (pos["pnl"] / pos["cost"] * 100) if pos["cost"] else 0
+                        total_value += pos["current_value"]
+                    else:
+                        pos["current_price"] = 0
+                        pos["current_value"] = 0
+                        pos["pnl"] = -pos["cost"]
+                        pos["pnl_pct"] = -100
+                except Exception:
+                    pos["current_price"] = 0
+                    pos["current_value"] = 0
+                    pos["pnl"] = -pos["cost"]
+                    pos["pnl_pct"] = -100
+
+            closed_pnl = sum(c.get("pnl", 0) for c in portfolio.get("closed_positions", []))
+            open_pnl = sum(p.get("pnl", 0) for p in portfolio["open_positions"])
+            wins = sum(1 for c in portfolio.get("closed_positions", []) if c.get("pnl", 0) > 0)
+            total_closed = len(portfolio.get("closed_positions", []))
+
+            portfolio["total_value"] = total_value
+            portfolio["total_pnl"] = closed_pnl + open_pnl
+            portfolio["total_pnl_pct"] = ((total_value - 50000) / 50000 * 100)
+            portfolio["win_rate"] = (wins / total_closed * 100) if total_closed else 0
+            portfolio["wins"] = wins
+            portfolio["losses"] = total_closed - wins
+            self._json_response(portfolio)
+        except Exception as e:
+            self._json_response({"error": str(e)})
+
+    def _handle_trading_market(self, params):
+        try:
+            execute_trade, _ = self._get_trade_module()
+            ticker = params.get("ticker", ["SPY"])[0]
+            result = execute_trade("market", {"ticker": ticker})
+            self._json_response({"result": result})
+        except Exception as e:
+            self._json_response({"error": str(e)})
+
+    def _handle_trading_chain(self, params):
+        try:
+            execute_trade, _ = self._get_trade_module()
+            ticker = params.get("ticker", ["SPY"])[0]
+            expiry = params.get("expiry", [None])[0]
+            p = {"ticker": ticker}
+            if expiry:
+                p["expiry"] = expiry
+            result = execute_trade("options_chain", p)
+            self._json_response({"result": result})
+        except Exception as e:
+            self._json_response({"error": str(e)})
+
+    def _handle_trading_analyze(self, params):
+        try:
+            execute_trade, _ = self._get_trade_module()
+            ticker = params.get("ticker", ["SPY"])[0]
+            result = execute_trade("analyze", {"ticker": ticker})
+            self._json_response({"result": result})
+        except Exception as e:
+            self._json_response({"error": str(e)})
+
+    def _handle_trading_buy(self, body):
+        try:
+            execute_trade, _ = self._get_trade_module()
+            result = execute_trade("paper_buy", body)
+            self._json_response({"result": result})
+        except Exception as e:
+            self._json_response({"error": str(e)})
+
+    def _handle_trading_sell(self, body):
+        try:
+            execute_trade, _ = self._get_trade_module()
+            result = execute_trade("paper_sell", body)
+            self._json_response({"result": result})
         except Exception as e:
             self._json_response({"error": str(e)})
 
@@ -704,6 +818,414 @@ h1{font-size:32px;font-weight:700;letter-spacing:-0.5px}h2{font-size:18px;font-w
 <div class="e"><span class="m get">GET</span><span class="p">/api/chat/history?last_n=50</span><div class="d">Chat history</div></div>
 <div class="e"><span class="m get">GET</span><span class="p">/api/chat/poll?after=ISO</span><div class="d">Poll for new messages</div></div>
 </body></html>"""
+
+
+# ── Trading Dashboard HTML ─────────────────────────────────
+
+_TRADING_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>watty — trading desk</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;min-height:100vh;background:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'SF Pro','Segoe UI',sans-serif;color:#e0e0e0;-webkit-font-smoothing:antialiased}
+
+/* Header */
+.header{padding:20px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(139,92,246,0.1)}
+.header h1{font-size:22px;font-weight:700;letter-spacing:1px;background:linear-gradient(135deg,#34d399,#6ee7b7);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header .sub{font-size:11px;color:#555;letter-spacing:1px;margin-top:2px}
+.header .live-dot{width:8px;height:8px;border-radius:50%;background:#34d399;display:inline-block;margin-right:8px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.header-right{display:flex;align-items:center;gap:16px}
+.refresh-label{font-size:11px;color:#555}
+
+/* Stats bar */
+.stats-bar{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;padding:20px 32px}
+.stat-card{background:rgba(20,20,35,0.8);border:1px solid rgba(255,255,255,0.04);border-radius:14px;padding:16px 20px;transition:border-color 0.3s}
+.stat-card:hover{border-color:rgba(139,92,246,0.2)}
+.stat-card .label{font-size:11px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.stat-card .value{font-size:24px;font-weight:700;letter-spacing:-0.5px}
+.stat-card .sub{font-size:12px;margin-top:4px}
+.green{color:#34d399}.red{color:#f87171}.dim{color:#555}.white{color:#f5f5f7}
+
+/* Main layout */
+.main{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 32px 32px}
+.panel{background:rgba(20,20,35,0.8);border:1px solid rgba(255,255,255,0.04);border-radius:14px;padding:20px;overflow:hidden}
+.panel-title{font-size:13px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.panel-title .icon{font-size:16px}
+
+/* Positions table */
+.pos-table{width:100%;border-collapse:collapse}
+.pos-table th{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.04)}
+.pos-table td{font-size:13px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.02)}
+.pos-table tr:hover td{background:rgba(139,92,246,0.03)}
+
+/* Closed trades */
+.trade-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.02)}
+.trade-row:last-child{border:none}
+.trade-info{font-size:13px;color:#ccc}
+.trade-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:8px}
+.trade-badge.win{background:rgba(52,211,153,0.12);color:#34d399}
+.trade-badge.loss{background:rgba(248,113,113,0.12);color:#f87171}
+
+/* Market data */
+.market-line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.02);font-size:13px}
+.market-line:last-child{border:none}
+.market-line .k{color:#888}
+.market-line .v{color:#e0e0e0;font-weight:500}
+
+/* Actions bar */
+.actions-bar{padding:16px 32px;display:flex;gap:8px;flex-wrap:wrap}
+.act-btn{background:rgba(20,20,35,0.8);border:1px solid rgba(139,92,246,0.15);border-radius:10px;padding:10px 20px;color:#a0a0b0;font-size:12px;cursor:pointer;transition:all 0.2s;font-family:inherit}
+.act-btn:hover{border-color:rgba(139,92,246,0.4);color:#c4b5fd;background:rgba(30,30,50,0.8)}
+.act-btn.primary{border-color:rgba(52,211,153,0.3);color:#34d399}
+.act-btn.primary:hover{border-color:#34d399;background:rgba(52,211,153,0.08)}
+.act-btn.danger{border-color:rgba(248,113,113,0.3);color:#f87171}
+.act-btn.danger:hover{border-color:#f87171;background:rgba(248,113,113,0.08)}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#16161f;border:1px solid rgba(139,92,246,0.15);border-radius:16px;padding:28px;width:420px;max-width:90vw}
+.modal h2{font-size:18px;font-weight:600;margin-bottom:16px;color:#f5f5f7}
+.modal label{font-size:12px;color:#888;display:block;margin:12px 0 4px;text-transform:uppercase;letter-spacing:0.5px}
+.modal input,.modal select{width:100%;padding:10px 14px;background:rgba(30,30,50,0.8);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e0e0e0;font-size:14px;font-family:inherit;outline:none;transition:border-color 0.2s}
+.modal input:focus,.modal select:focus{border-color:rgba(139,92,246,0.4)}
+.modal-actions{display:flex;gap:8px;margin-top:20px;justify-content:flex-end}
+
+/* Empty state */
+.empty{text-align:center;padding:40px;color:#444;font-size:13px}
+
+/* Full width panel */
+.full-width{grid-column:1/-1}
+
+/* Scrollable */
+.scroll-y{max-height:400px;overflow-y:auto}
+.scroll-y::-webkit-scrollbar{width:4px}
+.scroll-y::-webkit-scrollbar-track{background:transparent}
+.scroll-y::-webkit-scrollbar-thumb{background:rgba(139,92,246,0.2);border-radius:2px}
+
+/* Status toast */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(20,20,40,0.95);backdrop-filter:blur(12px);border:1px solid rgba(139,92,246,0.25);border-radius:12px;padding:12px 24px;font-size:13px;color:#c4b5fd;z-index:200;opacity:0;transition:opacity 0.3s;pointer-events:none}
+#toast.show{opacity:1}
+
+/* Responsive */
+@media(max-width:900px){.stats-bar{grid-template-columns:repeat(3,1fr)}.main{grid-template-columns:1fr}}
+@media(max-width:600px){.stats-bar{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>WATTY TRADING DESK</h1>
+    <div class="sub">PAPER TRADING &middot; OPTIONS &middot; LIVE</div>
+  </div>
+  <div class="header-right">
+    <span class="refresh-label">Auto-refresh <span id="countdown">30</span>s</span>
+    <span class="live-dot"></span>
+    <span style="font-size:12px;color:#34d399;font-weight:600">LIVE</span>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-card">
+    <div class="label">Portfolio Value</div>
+    <div class="value white" id="s-total">$50,000</div>
+    <div class="sub dim">starting capital</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Cash</div>
+    <div class="value white" id="s-cash">$50,000</div>
+    <div class="sub dim" id="s-cash-pct">100%</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Open P&L</div>
+    <div class="value" id="s-opnl">$0</div>
+    <div class="sub dim" id="s-opnl-pct">0%</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Total P&L</div>
+    <div class="value" id="s-tpnl">$0</div>
+    <div class="sub dim" id="s-tpnl-pct">0% from $50k</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Win Rate</div>
+    <div class="value white" id="s-wr">—</div>
+    <div class="sub dim" id="s-wl">0W / 0L</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Total Trades</div>
+    <div class="value white" id="s-trades">0</div>
+    <div class="sub dim" id="s-open-ct">0 open</div>
+  </div>
+</div>
+
+<div class="actions-bar">
+  <button class="act-btn primary" onclick="openBuyModal()">+ Buy Option</button>
+  <button class="act-btn" onclick="refreshData()">Refresh Now</button>
+  <button class="act-btn" onclick="showMarket()">Market Data</button>
+  <button class="act-btn" onclick="showAnalysis()">Analysis</button>
+  <a href="/" class="act-btn" style="text-decoration:none">Back to Brain</a>
+</div>
+
+<div class="main">
+  <div class="panel">
+    <div class="panel-title"><span class="icon">📊</span> Open Positions</div>
+    <div class="scroll-y" id="open-positions">
+      <div class="empty">No open positions. Click "Buy Option" to start trading.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title"><span class="icon">📈</span> Closed Trades</div>
+    <div class="scroll-y" id="closed-trades">
+      <div class="empty">No closed trades yet.</div>
+    </div>
+  </div>
+
+  <div class="panel full-width" id="market-panel" style="display:none">
+    <div class="panel-title"><span class="icon">🌎</span> Market Data</div>
+    <div id="market-data" style="white-space:pre-wrap;font-family:monospace;font-size:13px;color:#ccc;line-height:1.8"></div>
+  </div>
+
+  <div class="panel full-width" id="analysis-panel" style="display:none">
+    <div class="panel-title"><span class="icon">🧠</span> Analysis</div>
+    <div id="analysis-data" style="white-space:pre-wrap;font-family:monospace;font-size:13px;color:#ccc;line-height:1.8"></div>
+  </div>
+</div>
+
+<!-- Buy Modal -->
+<div class="modal-overlay" id="buy-modal">
+  <div class="modal">
+    <h2>Buy Option (Paper)</h2>
+    <label>Ticker</label>
+    <input id="m-ticker" value="SPY" />
+    <label>Type</label>
+    <select id="m-type"><option value="call">Call</option><option value="put">Put</option></select>
+    <label>Strike</label>
+    <input id="m-strike" type="number" step="0.5" placeholder="e.g. 605" />
+    <label>Expiry (YYYY-MM-DD)</label>
+    <input id="m-expiry" placeholder="leave blank for nearest" />
+    <label>Contracts</label>
+    <input id="m-contracts" type="number" value="1" min="1" />
+    <div class="modal-actions">
+      <button class="act-btn" onclick="closeBuyModal()">Cancel</button>
+      <button class="act-btn primary" onclick="executeBuy()">Buy</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sell Modal -->
+<div class="modal-overlay" id="sell-modal">
+  <div class="modal">
+    <h2>Sell Position</h2>
+    <p id="sell-info" style="font-size:13px;color:#aaa;margin-bottom:12px"></p>
+    <input type="hidden" id="sell-id" />
+    <div class="modal-actions">
+      <button class="act-btn" onclick="closeSellModal()">Cancel</button>
+      <button class="act-btn danger" onclick="executeSell()">Sell</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = '';
+let refreshTimer;
+let countdown = 30;
+
+function toast(msg, dur=3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function fmt(n) {
+  if (n == null || isNaN(n)) return '$0';
+  return '$' + Number(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function pnlClass(n) { return n >= 0 ? 'green' : 'red'; }
+
+async function fetchPortfolio() {
+  try {
+    const r = await fetch(API + '/api/trading/portfolio');
+    const d = await r.json();
+    if (d.error) { toast('Error: ' + d.error); return; }
+    updateUI(d);
+  } catch(e) { toast('Failed to fetch portfolio'); }
+}
+
+function updateUI(p) {
+  // Stats
+  document.getElementById('s-total').textContent = fmt(p.total_value);
+  document.getElementById('s-total').className = 'value ' + (p.total_value >= 50000 ? 'green' : 'red');
+  document.getElementById('s-cash').textContent = fmt(p.cash);
+  document.getElementById('s-cash-pct').textContent = ((p.cash/50000)*100).toFixed(0) + '% of starting';
+
+  const opnl = p.open_positions.reduce((s,x) => s + (x.pnl||0), 0);
+  document.getElementById('s-opnl').textContent = fmt(opnl);
+  document.getElementById('s-opnl').className = 'value ' + pnlClass(opnl);
+  document.getElementById('s-opnl-pct').textContent = (opnl >= 0 ? '+' : '') + ((opnl/50000)*100).toFixed(2) + '%';
+
+  document.getElementById('s-tpnl').textContent = fmt(p.total_pnl);
+  document.getElementById('s-tpnl').className = 'value ' + pnlClass(p.total_pnl);
+  document.getElementById('s-tpnl-pct').textContent = (p.total_pnl >= 0 ? '+' : '') + p.total_pnl_pct.toFixed(2) + '% from $50k';
+
+  if (p.wins + p.losses > 0) {
+    document.getElementById('s-wr').textContent = p.win_rate.toFixed(0) + '%';
+    document.getElementById('s-wr').className = 'value ' + (p.win_rate >= 50 ? 'green' : 'red');
+    document.getElementById('s-wl').textContent = p.wins + 'W / ' + p.losses + 'L';
+  }
+
+  document.getElementById('s-trades').textContent = p.total_trades;
+  document.getElementById('s-open-ct').textContent = p.open_positions.length + ' open';
+
+  // Open positions
+  const opDiv = document.getElementById('open-positions');
+  if (!p.open_positions.length) {
+    opDiv.innerHTML = '<div class="empty">No open positions. Click "Buy Option" to start.</div>';
+  } else {
+    let h = '<table class="pos-table"><thead><tr><th>ID</th><th>Position</th><th>Entry</th><th>Current</th><th>P&L</th><th></th></tr></thead><tbody>';
+    for (const pos of p.open_positions) {
+      const pnl = pos.pnl || 0;
+      const pnlPct = pos.pnl_pct || 0;
+      h += '<tr>';
+      h += '<td style="color:#888;font-family:monospace">' + pos.id + '</td>';
+      h += '<td>' + pos.contracts + 'x ' + pos.ticker + ' $' + pos.strike + ' ' + pos.type.toUpperCase() + '<br><span style="color:#555;font-size:11px">' + pos.expiry + '</span></td>';
+      h += '<td>' + fmt(pos.entry_price) + '</td>';
+      h += '<td>' + fmt(pos.current_price) + '</td>';
+      h += '<td class="' + pnlClass(pnl) + '">' + fmt(pnl) + '<br><span style="font-size:11px">' + (pnl>=0?'+':'') + pnlPct.toFixed(1) + '%</span></td>';
+      h += '<td><button class="act-btn danger" style="padding:6px 12px;font-size:11px" onclick="openSellModal(\'' + pos.id + '\',\'' + pos.contracts + 'x ' + pos.ticker + ' $' + pos.strike + ' ' + pos.type + '\')">Sell</button></td>';
+      h += '</tr>';
+    }
+    h += '</tbody></table>';
+    opDiv.innerHTML = h;
+  }
+
+  // Closed trades
+  const clDiv = document.getElementById('closed-trades');
+  const closed = p.closed_positions || [];
+  if (!closed.length) {
+    clDiv.innerHTML = '<div class="empty">No closed trades yet.</div>';
+  } else {
+    let h = '';
+    for (const c of closed.slice().reverse().slice(0, 20)) {
+      const pnl = c.pnl || 0;
+      const isWin = pnl > 0;
+      h += '<div class="trade-row">';
+      h += '<div class="trade-info">' + c.contracts + 'x ' + c.ticker + ' $' + c.strike + ' ' + c.type.toUpperCase() + ' <span style="color:#555;font-size:11px">' + (c.closed||'').slice(0,10) + '</span></div>';
+      h += '<div><span class="trade-badge ' + (isWin?'win':'loss') + '">' + (isWin?'+':'') + fmt(pnl) + ' (' + (pnl>=0?'+':'') + (c.pnl_pct||0).toFixed(1) + '%)</span></div>';
+      h += '</div>';
+    }
+    clDiv.innerHTML = h;
+  }
+}
+
+// Buy modal
+function openBuyModal() { document.getElementById('buy-modal').classList.add('open'); }
+function closeBuyModal() { document.getElementById('buy-modal').classList.remove('open'); }
+
+async function executeBuy() {
+  const body = {
+    ticker: document.getElementById('m-ticker').value || 'SPY',
+    option_type: document.getElementById('m-type').value,
+    strike: parseFloat(document.getElementById('m-strike').value),
+    contracts: parseInt(document.getElementById('m-contracts').value) || 1,
+  };
+  const exp = document.getElementById('m-expiry').value;
+  if (exp) body.expiry = exp;
+
+  if (!body.strike) { toast('Need a strike price'); return; }
+
+  closeBuyModal();
+  toast('Placing order...');
+  try {
+    const r = await fetch(API + '/api/trading/buy', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    const d = await r.json();
+    toast(d.result || d.error || 'Done', 5000);
+    setTimeout(fetchPortfolio, 500);
+  } catch(e) { toast('Buy failed: ' + e.message); }
+}
+
+// Sell modal
+function openSellModal(id, info) {
+  document.getElementById('sell-id').value = id;
+  document.getElementById('sell-info').textContent = 'Close position: ' + info + ' (ID: ' + id + ')';
+  document.getElementById('sell-modal').classList.add('open');
+}
+function closeSellModal() { document.getElementById('sell-modal').classList.remove('open'); }
+
+async function executeSell() {
+  const id = document.getElementById('sell-id').value;
+  closeSellModal();
+  toast('Selling...');
+  try {
+    const r = await fetch(API + '/api/trading/sell', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({position_id: id})});
+    const d = await r.json();
+    toast(d.result || d.error || 'Done', 5000);
+    setTimeout(fetchPortfolio, 500);
+  } catch(e) { toast('Sell failed: ' + e.message); }
+}
+
+// Market data
+async function showMarket() {
+  const panel = document.getElementById('market-panel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  if (panel.style.display === 'block') {
+    document.getElementById('market-data').textContent = 'Loading...';
+    try {
+      const r = await fetch(API + '/api/trading/market');
+      const d = await r.json();
+      document.getElementById('market-data').textContent = d.result || d.error;
+    } catch(e) { document.getElementById('market-data').textContent = 'Failed'; }
+  }
+}
+
+async function showAnalysis() {
+  const panel = document.getElementById('analysis-panel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  if (panel.style.display === 'block') {
+    document.getElementById('analysis-data').textContent = 'Analyzing...';
+    try {
+      const r = await fetch(API + '/api/trading/analyze');
+      const d = await r.json();
+      document.getElementById('analysis-data').textContent = d.result || d.error;
+    } catch(e) { document.getElementById('analysis-data').textContent = 'Failed'; }
+  }
+}
+
+function refreshData() {
+  countdown = 30;
+  fetchPortfolio();
+  toast('Refreshed');
+}
+
+// Auto-refresh
+function startTimer() {
+  clearInterval(refreshTimer);
+  countdown = 30;
+  refreshTimer = setInterval(() => {
+    countdown--;
+    document.getElementById('countdown').textContent = countdown;
+    if (countdown <= 0) {
+      countdown = 30;
+      fetchPortfolio();
+    }
+  }, 1000);
+}
+
+// Init
+fetchPortfolio();
+startTimer();
+</script>
+</body>
+</html>"""
 
 
 # ── Brain Viewer HTML ──────────────────────────────────────

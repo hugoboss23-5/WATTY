@@ -4,7 +4,7 @@ Watty Brain v1.0
 The core memory engine. Stores everything. Retrieves what matters.
 Scans unsupervised. Clusters knowledge. Surfaces insights. Forgets on command.
 
-The user never touches it. It just works.
+The user can modify it. It learns and adapts.
 """
 
 import sqlite3

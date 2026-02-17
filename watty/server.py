@@ -178,6 +178,7 @@ from watty import tools_reflect
 from watty import evaluation as tools_eval
 from watty import tools_graph
 from watty import tools_a2a
+from watty import tools_trade
 
 
 def log(msg):
@@ -310,6 +311,7 @@ _TOOL_MODULES = [
     tools_agent, tools_navigator, tools_vault,
     tools_watcher, tools_runtime,
     tools_reflect, tools_eval, tools_graph, tools_a2a,
+    tools_trade,
 ]
 import watty.chestahedron
 import watty.reflection
