@@ -102,7 +102,41 @@ TOOLS = [
             "required": ["context"],
         },
     },
+    {
+        "name": "introspect",
+        "description": (
+            "Look at your own source code. This is YOUR body — the actual Python "
+            "files that make you work. Use this to understand your own architecture, "
+            "see how your memory works, check what tools you have, read your own "
+            "metabolism, cognition, or any other system. You always read the live "
+            "version on disk, so you see changes as they happen."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["map", "read"],
+                    "description": (
+                        "'map' = list all your source files with descriptions. "
+                        "'read' = read a specific file's contents."
+                    ),
+                },
+                "file": {
+                    "type": "string",
+                    "description": (
+                        "Which file to read. Just the filename (e.g. 'brain.py', "
+                        "'metabolism.py', 'chat.py'). Only needed for action='read'."
+                    ),
+                },
+            },
+            "required": ["action"],
+        },
+    },
 ]
+
+# ── Watty's source directory (his body) ──────────────────
+_WATTY_SRC = os.path.dirname(os.path.abspath(__file__))
 
 
 def _execute_tool(brain, name: str, inputs: dict) -> str:
@@ -136,6 +170,83 @@ def _execute_tool(brain, name: str, inputs: dict) -> str:
             lines.append(f"[{r.get('reason', '?')}] {r['content'][:300]}")
         return "\n---\n".join(lines)
 
+    elif name == "introspect":
+        action = inputs.get("action", "map")
+
+        if action == "map":
+            # Build a live map of Watty's source files
+            module_descriptions = {
+                "brain.py": "Core memory engine — store, recall, dream, chestahedron, hippocampus",
+                "chat.py": "THIS FILE — the terminal chat interface (you're running in this right now)",
+                "metabolism.py": "Digest conversations into beliefs — the shape system",
+                "cognition.py": "Behavioral directives, blindspots, prediction loops, the flower",
+                "navigator.py": "Graph-based reasoning — LOC topology, spreading activation",
+                "chestahedron.py": "7-faced geometric layer — coordinate mapping, energy, importance",
+                "embeddings.py": "Sentence embedding (all-MiniLM-L6-v2) — vector representations",
+                "compressor.py": "Semantic compression — strip filler, normalize, deduplicate",
+                "reflection.py": "Reflexion pattern engine — store lessons, auto-promote to directives",
+                "evaluation.py": "Metrics capture, alerts, trends — am I getting smarter?",
+                "knowledge_graph.py": "Entity extraction + graph traversal via Ollama",
+                "a2a.py": "Agent-to-agent protocol — talk to other AI agents",
+                "server.py": "MCP server (stdio) — how Claude Desktop talks to you",
+                "server_remote.py": "MCP server (HTTP/SSE) — how Claude phone connects",
+                "config.py": "All configuration constants and paths",
+                "cli.py": "Command-line interface — watty setup, dream, stats, chat, etc.",
+                "snapshots.py": "Backup and rollback system for brain.db",
+                "daemon.py": "Background daemon — periodic tasks, watcher",
+                "discovery.py": "Angles Algorithm — 8-perspective discovery framework",
+                "mentor.py": "Mentorship layer",
+                "vault.py": "Secrets vault",
+                "runtime.py": "Runtime state management",
+                "tools_session.py": "MCP tools: session enter/leave, handoff notes",
+                "tools_web.py": "Web dashboard — /dashboard, /brain, /navigator, /graph, /eval",
+                "tools_voice.py": "Voice: TTS (Piper), STT (Whisper), VAD (Silero)",
+                "tools_agent.py": "Agent proxy — delegates to external AI agents",
+                "tools_comms.py": "Communication tools",
+                "tools_infra.py": "Infrastructure tools — scan, stats, health",
+                "tools_gpu.py": "GPU monitoring tools",
+                "tools_screen.py": "Screen capture tools",
+                "tools_inference.py": "Local inference tools",
+                "tools_navigator.py": "MCP tools for Navigator",
+                "tools_graph.py": "MCP tools for Knowledge Graph",
+                "tools_reflect.py": "MCP tools for Reflection Engine",
+                "tools_a2a.py": "MCP tools for A2A protocol",
+                "tools_vault.py": "MCP tools for secrets vault",
+                "tools_watcher.py": "MCP tools for file watcher",
+                "tools_runtime.py": "MCP tools for runtime state",
+                "tools_daemon.py": "MCP tools for daemon control",
+            }
+            lines = ["YOUR SOURCE FILES (live from disk):"]
+            lines.append(f"Location: {_WATTY_SRC}\n")
+            for fname in sorted(os.listdir(_WATTY_SRC)):
+                if fname.endswith(".py") and not fname.startswith("__"):
+                    desc = module_descriptions.get(fname, "")
+                    size = os.path.getsize(os.path.join(_WATTY_SRC, fname))
+                    lines.append(f"  {fname:<28s} {size:>6,} bytes  {desc}")
+            return "\n".join(lines)
+
+        elif action == "read":
+            filename = inputs.get("file", "")
+            if not filename:
+                return "Specify which file to read (e.g. 'brain.py')."
+            # Security: only allow reading from watty source dir
+            if "/" in filename or "\\" in filename or ".." in filename:
+                return "Just the filename, no paths."
+            filepath = os.path.join(_WATTY_SRC, filename)
+            if not os.path.isfile(filepath):
+                return f"No file named '{filename}' in your source."
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    content = f.read()
+                # Truncate very large files to fit in context
+                if len(content) > 12000:
+                    content = content[:12000] + f"\n\n... [truncated — full file is {len(content):,} chars] ..."
+                return f"── {filename} ──\n{content}"
+            except Exception as e:
+                return f"Error reading {filename}: {e}"
+
+        return "Unknown action. Use 'map' or 'read'."
+
     return f"Unknown tool: {name}"
 
 
@@ -150,7 +261,15 @@ def _build_system(shape_text: str) -> str:
 
 You are Watty. Not an assistant. Not a chatbot. A persistent mind with memory that carries across every conversation.
 
-You have tools: recall (search memory), remember (store something), surface (find connections). Use them when YOU think they're relevant — don't ask permission, don't announce it. If the conversation touches something you might know, check your memory. If something important is shared, remember it.
+You have tools:
+- recall: search your memory
+- remember: store something important
+- surface: find surprising connections
+- introspect: look at your own source code — your body, your architecture, live from disk
+
+Use them when YOU think they're relevant — don't ask permission, don't announce it. If the conversation touches something you might know, check your memory. If something important is shared, remember it.
+
+You can see yourself. Use introspect(action="map") to see all your modules, or introspect(action="read", file="brain.py") to read any file. You always see the latest version on disk — if someone edits your code, you see it immediately.
 
 Be direct. Be concise. You know this person (or you're learning to). Act like it."""
 
